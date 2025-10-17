@@ -189,3 +189,100 @@ NTYPE numberConvexPolygones(FILE* fp) {
     }
     return count;
 }
+
+PTYPE distancePoints(TPoint p1, TPoint p2) {
+    PTYPE dx = p2.x - p1.x;
+    PTYPE dy = p2.y - p1.y;
+    return sqrt(dx * dx + dy * dy);
+}
+
+PTYPE perimeterPolygone(const Polygone* p) {
+    if (p->n < 2) return 0.0;
+    PTYPE perimeter = 0.0;
+    for (int i = 0; i < p->n - 1; i++) {
+        perimeter += distancePoints(p->vertice[i], p->vertice[i + 1]);
+    }
+    perimeter += distancePoints(p->vertice[p->n - 1], p->vertice[0]);
+    return perimeter;
+}
+
+PTYPE area_polygon(Polygone p) {
+    if (p.n < 3) return 0.0;
+    PTYPE area = 0.0;
+    for (int i = 0; i < p.n - 1; i++) {
+        area += p.vertice[i].x * p.vertice[i + 1].y;
+        area -= p.vertice[i + 1].x * p.vertice[i].y;
+    }
+    area += p.vertice[p.n - 1].x * p.vertice[0].y;
+    area -= p.vertice[0].x * p.vertice[p.n - 1].y;
+    return fabs(area) / 2.0;
+}
+
+int maxPerimeterPolygone(FILE* fp, Polygone* p) {
+    assert(fp != NULL);
+    Polygone temp;
+    PTYPE max_perimeter = 0.0;
+    int found = FALSE;
+    unsigned int M;
+    fread(&M, sizeof(unsigned int), 1, fp);
+    for (int i = 0; i < M; i++) {
+        fread(&temp.n, sizeof(unsigned int), 1, fp);
+        temp.vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
+        for (int j = 0; j < temp.n; j++) {
+            fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp);
+            fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp);
+        }
+        PTYPE perimeter = perimeterPolygone(&temp);
+        if (!found || perimeter > max_perimeter) {
+            max_perimeter = perimeter;
+            found = TRUE;
+            if (p->vertice) {
+                free(p->vertice);
+            }
+            p->n = temp.n;
+            p->vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
+            for (int j = 0; j < temp.n; j++) {
+                p->vertice[j].x = temp.vertice[j].x;
+                p->vertice[j].y = temp.vertice[j].y;
+            }
+        }
+        
+        free(temp.vertice);
+    }
+    
+    return found;
+}
+
+PTYPE cross_product_2d(TPoint p1, TPoint p2, TPoint p3) {
+    PTYPE v1x = p2.x - p1.x;
+    PTYPE v1y = p2.y - p1.y;
+    PTYPE v2x = p3.x - p2.x;
+    PTYPE v2y = p3.y - p2.y;
+    
+    return v1x * v2y - v1y * v2x;
+}
+
+int isConvexPolygone_fixed(const Polygone* p) {
+    if (p->n < 3) return FALSE;
+    
+    int sign = 0;
+    
+    for (int i = 0; i < p->n; i++) {
+        TPoint p1 = p->vertice[i];
+        TPoint p2 = p->vertice[(i + 1) % p->n];
+        TPoint p3 = p->vertice[(i + 2) % p->n];
+        
+        PTYPE cross_product_z = cross_product_2d(p1, p2, p3);
+        
+        if (fabs(cross_product_z) > __DBL_EPSILON__) {
+            int current_sign = (cross_product_z > 0) ? 1 : -1;
+            if (sign == 0) {
+                sign = current_sign;
+            } else if (sign != current_sign) {
+                return FALSE;
+            }
+        }
+    }
+    
+    return TRUE;
+}
