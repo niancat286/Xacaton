@@ -189,3 +189,48 @@ NTYPE numberConvexPolygones(FILE* fp) {
     }
     return count;
 }
+
+
+NTYPE conditionPolygones(FILE* fp, predicatPolygone Q, const char* fname){
+    NTYPE M;
+    FILE* output = fopen(fname, "wb");
+    if (!output) return 0;
+
+    if (fread(&M, sizeof(NTYPE), 1, fp) != 1) {
+        fclose(output);
+        return 0;
+    }
+
+
+    TPoint* vertices = NULL;
+
+    NTYPE count = 0;
+    fwrite(&count, sizeof(NTYPE), 1, output); 
+
+    NTYPE N;
+    
+    for (NTYPE i = 0; i < M; i++) {
+        fread(&N, sizeof(NTYPE), 1, fp);
+
+        if (fread(vertices, sizeof(TPoint), N, fp) != N) {
+            free(vertices);
+            fclose(output);
+            return 0;
+        }
+
+        Polygone p = {N, vertices};
+
+        if (Q(p)) {
+            count++;
+            fwrite(&N, sizeof(NTYPE), 1, output);
+            fwrite(vertices, sizeof(TPoint), N, output);
+        }
+    }
+
+    fseek(output, 0, SEEK_SET);
+    fwrite(&count, sizeof(NTYPE), 1, output);
+
+    free(vertices);
+    fclose(output);
+    return count;
+}
