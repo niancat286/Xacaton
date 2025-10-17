@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #include "Polygone.h"
 #include "file_forming.h"
@@ -25,6 +27,7 @@ int inputPolygone(FILE* fp, Polygone* p){
     p->vertice = (TPoint*) malloc(n * 2 * sizeof(TPoint));
     int scan_res = 0;
     // ....
+    return TRUE;
 }
 
 int writePolygone_binary(FILE* fp, Polygone* p) {
@@ -40,12 +43,10 @@ int writePolygone_binary(FILE* fp, Polygone* p) {
     return 1;
 }
 
-// text file
 int writePolygone(FILE* fp, Polygone* p) {
     assert(fp != 0);
     assert(p != 0);
-    //
-    
+    return 0;
 }
 
 void showPolygonesFile(FILE* fp) {
@@ -73,8 +74,13 @@ int freePolygone(Polygone* p){
 }
 
 PTYPE area_polygon(Polygone p) {
- 
- 
+    double sum = 0.0;
+    if (p.n < 3) return 0.0;
+    for (int i = 0; i < p.n; ++i) {
+        int j = (i + 1) % p.n;
+        sum += (double)p.vertice[i].x * p.vertice[j].y - (double)p.vertice[j].x * p.vertice[i].y;
+    }
+    return (PTYPE)(0.5 * fabs(sum));
 }
 
 NTYPE inPolygon(Polygone p, TPoint point) {
@@ -155,8 +161,7 @@ int isConvexPolygone(const Polygone* p) {
         TPoint p3 = p->vertice[(i + 2) % p->n];
         TVECT v1 = setVector(p1, p2);
         TVECT v2 = setVector(p2, p3);
-        /// Векторний добуток
-
+        PTYPE cross_product_z = vectorMultVector(v1, v2).z;
         if (cross_product_z != 0) {
             int current_sign = (cross_product_z > 0) ? 1 : -1;
             if (sign == 0){
@@ -188,4 +193,81 @@ NTYPE numberConvexPolygones(FILE* fp) {
         free(p.vertice);
     }
     return count;
+}
+
+int deletePolygonesFile(FILE* fp, NTYPE k) {
+    if (fp == NULL) return FALSE;
+    if (fseek(fp, 0, SEEK_SET) != 0) rewind(fp);
+    unsigned int M;
+    if (fread(&M, sizeof(unsigned int), 1, fp) != 1) return FALSE;
+    if (M == 0) return FALSE;
+    Polygone* arr = (Polygone*) malloc(sizeof(Polygone) * M);
+    if (!arr) return FALSE;
+    for (unsigned int i = 0; i < M; ++i) {
+        unsigned int n;
+        if (fread(&n, sizeof(unsigned int), 1, fp) != 1) {
+            for (unsigned int t = 0; t < i; ++t) free(arr[t].vertice);
+            free(arr);
+            return FALSE;
+        }
+        arr[i].n = n;
+        arr[i].vertice = (TPoint*) malloc(sizeof(TPoint) * n);
+        if (!arr[i].vertice) {
+            for (unsigned int t = 0; t < i; ++t) free(arr[t].vertice);
+            free(arr);
+            return FALSE;
+        }
+        for (unsigned int j = 0; j < n; ++j) {
+            if (fread(&arr[i].vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
+                fread(&arr[i].vertice[j].y, sizeof(PTYPE), 1, fp) != 1) {
+                for (unsigned int t = 0; t <= i; ++t) free(arr[t].vertice);
+                free(arr);
+                return FALSE;
+            }
+        }
+    }
+    if ((unsigned int)k >= M) {
+        for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
+        free(arr);
+        return FALSE;
+    }
+    int fd = fileno(fp);
+    if (fd < 0) {
+        for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
+        free(arr);
+        return FALSE;
+    }
+    if (ftruncate(fd, 0) != 0) {
+        for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
+        free(arr);
+        return FALSE;
+    }
+    if (fseek(fp, 0, SEEK_SET) != 0) rewind(fp);
+    unsigned int newM = M - 1;
+    if (fwrite(&newM, sizeof(unsigned int), 1, fp) != 1) {
+        for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
+        free(arr);
+        return FALSE;
+    }
+    for (unsigned int i = 0; i < M; ++i) {
+        if (i == (unsigned)k) continue;
+        unsigned int n = arr[i].n;
+        if (fwrite(&n, sizeof(unsigned int), 1, fp) != 1) {
+            for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
+            free(arr);
+            return FALSE;
+        }
+        for (unsigned int j = 0; j < n; ++j) {
+            if (fwrite(&arr[i].vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
+                fwrite(&arr[i].vertice[j].y, sizeof(PTYPE), 1, fp) != 1) {
+                for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
+                free(arr);
+                return FALSE;
+            }
+        }
+    }
+    fflush(fp);
+    for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
+    free(arr);
+    return TRUE;
 }
