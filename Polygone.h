@@ -36,13 +36,13 @@ extern int isEqualPolygone(const struct Polygone* p1,const struct Polygone* p2);
 // чи є в нашому файлі
 extern int isPresentPolygone(FILE* fp, const struct Polygone* p);
 
+extern int isConvexPolygone(const Polygone* p);
 /*
 extern PTYPE perimeterPolygone(const Polygone* p);
 
 extern PTYPE areaPolygone(const Polygone* p);
 
 // Чи є багатокутник опуклим?
-extern int isConvexPolygone(const Polygone* p);
 
 extern int maxPerimeterPolygone(FILE* fp, Polygone* p);
 
