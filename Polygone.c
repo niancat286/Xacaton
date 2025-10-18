@@ -7,7 +7,7 @@
 #include "file_forming.h"
 
 #define LEN 30
-
+/*
 int inputPolygone(FILE* fp, Polygone* p){
 
     NTYPE n;
@@ -189,3 +189,67 @@ NTYPE numberConvexPolygones(FILE* fp) {
     }
     return count;
 }
+*/
+
+int isEqualPoint(struct TPoint a, struct TPoint b) {
+    return fabs(a.x - b.x) < 1e-6 && fabs(a.y - b.y) < 1e-6;
+}
+
+
+int isEqualPolygone(const struct Polygone* p1,const struct Polygone* p2){
+    if (p1->n != p2->n) return FALSE; // тоді у нас різна кількість вершин
+
+    int n = p->n;
+    int start = -1;
+
+    for (int i = 0; i < n; i++) {
+        if (isEqualPoint(p1->vertice[0], p2->vertice[i])) {
+            start = i;
+            break;
+        }
+    }
+    if (start == -1) return FALSE;
+
+    int same_dir = TRUE;
+    int opposite_dir = TRUE;
+    for (int i = 0; i < n; i++) {
+        int j = (start + i) % n;
+        int k = (start - i + n) % n;
+        if (!isEqualPoint(p1->vertice[i], p2->vertice[j]))
+            same_dir = FALSE;
+        if (!isEqualPoint(p1->vertice[i], p2->vertice[k]))
+            opposite_dir = FALSE;
+    }
+    return (same_dir || opposite_dir);
+}
+
+
+int isPresentPolygone(FILE* fp, const struct Polygone* p){
+    assert(fp != NULL);
+    rewind(fp);
+
+    unsigned int M;
+    if (fread(&M, sizeof(unsigned int), 1, fp) != 1) return FALSE;
+
+
+    struct Polygone temp;
+    if (fread(&temp.n, sizeof(unsigned int), 1, fp) != 1) break;
+
+    temp.vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
+    for (unsigned int j = 0; j < temp.n; j++) {
+        fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp);
+        fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp);
+    }
+
+    int equal = isEqualPolygone(p, &temp);
+    free(temp.vertice);
+
+    if (equal) return TRUE;
+}
+
+return FALSE;
+}
+
+
+
+

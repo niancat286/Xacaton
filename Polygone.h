@@ -1,9 +1,10 @@
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef _POLYGONE_H_
+#define _POLYGONE_H_
 
 #include "stdio.h"
 #include "stdlib.h"
-
+#include "Types.h"
+/*
 #include "Predicat.h"
 
 
@@ -26,11 +27,16 @@ extern int deletePolygonesFile(FILE* fp, NTYPE k);
 extern void showPolygoneFile(FILE* fp, NTYPE k);
 
 extern void showPolygonesFile(FILE* fp);
+*/
+//чи однакові багатокутники?
+extern int isEqualPoint(struct TPoint a, struct TPoint b);
 
-int isEqualPolygone(const Polygone* p1,const Polygone* p2);
+extern int isEqualPolygone(const struct Polygone* p1,const struct Polygone* p2);
 
-extern int isPresentPolygone(FILE* fp, const Polygone* p);
+// чи є в нашому файлі
+extern int isPresentPolygone(FILE* fp, const struct Polygone* p);
 
+/*
 extern PTYPE perimeterPolygone(const Polygone* p);
 
 extern PTYPE areaPolygone(const Polygone* p);
@@ -77,4 +83,6 @@ extern Polygone convex_wrapper(const Polygone* p1);
 
 //Знайти мінімальний по площі багатокутник, такий що кожна точка будь-якого ребра цього багаткутника знаходиться на відстані не більше 1 від даного багатокутника
 extern Polygone wrapper_distance(const Polygone* p1, PTYPE dist);
+
+*/
 #endif // end of _TYPES_H_

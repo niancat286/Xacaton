@@ -2,6 +2,8 @@
 #include "Polygone.h"
 #include <assert.h>
 
+
+/*
 int test_isEqual() {
     PTYPE a = 5.f, b = 7.f, c = 5.f;
     if (!isEqual(a, b) && isEqual(a, c)) {
@@ -162,10 +164,10 @@ NTYPE test_pointsPolygones() {
 
     TPoint check1 = {5.f, 7.f};
     NTYPE expected1 = 0;
-    NTYPE got1 = pointsPolygones(fp1, check1); 
+    NTYPE got1 = pointsPolygones(fp1, check1);
     fclose(fp1);
 
-    FILE* fp2 = fopen("polygones.txt", "r");    
+    FILE* fp2 = fopen("polygones.txt", "r");
     TPoint check2 = {3.01, 3.01};
     NTYPE expected2 = 2;
     NTYPE got2 = pointsPolygones(fp2, check2);
@@ -222,7 +224,7 @@ int test_isConvexPolygone_invalid(){
     return isConvexPolygone(&p) == FALSE;  // Менше ніж 3 вершини
 }
 
-int test_minAreaPolygone() { 
+int test_minAreaPolygone() {
     const char* filename = "file_test_minAreaPolygone";
     FILE* fp = fopen(filename, "rb");
     if(fp != NULL) return FALSE;
@@ -281,11 +283,11 @@ int testInputPolygone(){
 
     p2.vertice[1].x = 0;
     p2.vertice[1].y = 1;
-    
+
     p2.vertice[2].x = 1;
     p2.vertice[2].y = 0;
 
-    //if(!isEqualPolygone(&p,&p2)) return FALSE; 
+    if(!isEqualPolygone(&p,&p2)) return FALSE;
 
     freePolygone(&p);
     freePolygone(&p2);
@@ -300,4 +302,144 @@ int testInputPolygone(){
     printf("Input tests passed");
 
     return TRUE;
+}
+
+*/
+
+int test_isEqualPolygone() {
+    struct Polygone p1;
+    struct Polygone p2;
+    struct Polygone p3;
+    int passed = 1;
+
+    // === Трикутник p1 ===
+    p1.n = 3;
+    p1.vertice = malloc(p1.n * sizeof(TPoint));
+    p1.vertice[0] = (TPoint){0, 0};
+    p1.vertice[1] = (TPoint){1, 0};
+    p1.vertice[2] = (TPoint){0, 1};
+
+    // === Такий самий трикутник p2 (інший порядок вершин — зсув циклу) ===
+    p2.n = 3;
+    p2.vertice = malloc(p2.n * sizeof(TPoint));
+    p2.vertice[0] = (TPoint){1, 0};
+    p2.vertice[1] = (TPoint){0, 1};
+    p2.vertice[2] = (TPoint){0, 0};
+
+    // === Інший полігон p3 ===
+    p3.n = 3;
+    p3.vertice = malloc(3 * sizeof(TPoint));
+    p3.vertice[0] = (TPoint){0, 0};
+    p3.vertice[1] = (TPoint){2, 0};
+    p3.vertice[2] = (TPoint){0, 2};
+
+    // Тест 1: однакові з різним початком
+    if (!isEqualPolygone(&p1, &p2)) {
+        printf("Test 1 failed: expected equal polygons\n");
+        passed = 0;
+    }
+
+    // Тест 2: різні координати
+    if (isEqualPolygone(&p1, &p3)) {
+        printf("Test 2 failed: expected not equal polygons\n");
+        passed = 0;
+    }
+
+    // Тест 3: перевірка зворотного порядку (reverse)
+    Polygone p4;
+    p4.n = 3;
+    p4.vertice = malloc(3 * sizeof(TPoint));
+    p4.vertice[0] = (TPoint){0, 0};
+    p4.vertice[1] = (TPoint){0, 1};
+    p4.vertice[2] = (TPoint){1, 0};
+
+    if (!isEqualPolygone(&p1, &p4)) {
+        printf("Test 3 failed: expected equal polygons (reverse order)\n");
+        passed = 0;
+    }
+
+    free(p1.vertice);
+    free(p2.vertice);
+    free(p3.vertice);
+    free(p4.vertice);
+
+    return passed;
+}
+
+
+int test_isPresentPolygone() {
+    int passed = 1;
+
+    FILE* fp = fopen("test_1.txt", "wb+");
+    if (!fp) {
+        printf("Cannot open file for test\n");
+        return 0;
+    }
+
+    unsigned int M = 2;
+    fwrite(&M, sizeof(unsigned int), 1, fp);
+
+    // === Полігон 1 ===
+    struct Polygone p1;
+    p1.n = 3;
+    p1.vertice = malloc(3 * sizeof(TPoint));
+    p1.vertice[0] = (TPoint){0, 0};
+    p1.vertice[1] = (TPoint){1, 0};
+    p1.vertice[2] = (TPoint){0, 1};
+
+    fwrite(&p1.n, sizeof(unsigned int), 1, fp);
+    for (unsigned int i = 0; i < p1.n; i++) {
+        fwrite(&p1.vertice[i].x, sizeof(PTYPE), 1, fp);
+        fwrite(&p1.vertice[i].y, sizeof(PTYPE), 1, fp);
+    }
+
+    // === Полігон 2 ===
+    struct Polygone p2;
+    p2.n = 4;
+    p2.vertice = malloc(4 * sizeof(TPoint));
+    p2.vertice[0] = (TPoint){0, 0};
+    p2.vertice[1] = (TPoint){1, 0};
+    p2.vertice[2] = (TPoint){1, 1};
+    p2.vertice[3] = (TPoint){0, 1};
+
+    fwrite(&p2.n, sizeof(unsigned int), 1, fp);
+    for (unsigned int i = 0; i < p2.n; i++) {
+        fwrite(&p2.vertice[i].x, sizeof(PTYPE), 1, fp);
+        fwrite(&p2.vertice[i].y, sizeof(PTYPE), 1, fp);
+    }
+
+    fflush(fp);
+
+    // === Тест 1: p1 повинен бути знайдений
+    if (!isPresentPolygone(fp, &p1)) {
+        printf("Test 1 failed: expected polygon p1 to be present\n");
+        passed = 0;
+    }
+
+    // === Тест 2: p2 повинен бути знайдений
+    if (!isPresentPolygone(fp, &p2)) {
+        printf("Test 2 failed: expected polygon p2 to be present\n");
+        passed = 0;
+    }
+
+    // === Тест 3: p3 не повинен бути знайдений
+    struct Polygone p3;
+    p3.n = 3;
+    p3.vertice = malloc(3 * sizeof(TPoint));
+    p3.vertice[0] = (TPoint){0, 0};
+    p3.vertice[1] = (TPoint){2, 0};
+    p3.vertice[2] = (TPoint){0, 2};
+
+    if (isPresentPolygone(fp, &p3)) {
+        printf("Test 3 failed: expected polygon p3 to be absent\n");
+        passed = 0;
+    }
+
+    free(p1.vertice);
+    free(p2.vertice);
+    free(p3.vertice);
+    fclose(fp);
+    remove("test_polygons.bin");
+
+    return passed;
 }
