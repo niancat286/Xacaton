@@ -71,12 +71,19 @@ int freePolygone(Polygone* p){
     if(p->vertice)free(p->vertice);
     return 0;
 }
-
+*/
 PTYPE area_polygon(Polygone p) {
-
-
+    if (p.n < 3) return 0;
+    PTYPE area = 0;
+    for (int i = 0; i < p.n; i++) {
+        int j = (i + 1) % p.n;
+        area += p.vertice[i].x * p.vertice[j].y;
+        area -= p.vertice[j].x * p.vertice[i].y;
+    }
+    
+    return fabs(area) / 2.0;
 }
-
+/*
 NTYPE inPolygon(Polygone p, TPoint point) {
     NTYPE power = p.n;
     PTYPE res = 0;
@@ -112,20 +119,41 @@ NTYPE pointsPolygones(FILE* fp, TPoint point) {
     }
     return res;
 }
-
+*/
 int minAreaPolygone(FILE* fp, Polygone* p) {
     assert(fp != NULL);
+    assert(p != NULL);
+    p->vertice = NULL;
+    p->n = 0;
     Polygone temp;
     PTYPE min_area = 0;
     int found = FALSE;
     unsigned int M;
-    fread(&M, sizeof(unsigned int), 1, fp);
+    if (fread(&M, sizeof(unsigned int), 1, fp) != 1) {
+        return FALSE;
+    }
     for (int i = 0; i < M; i++) {
-        fread(&temp.n, sizeof(unsigned int), 1, fp);
+        if (fread(&temp.n, sizeof(unsigned int), 1, fp) != 1) {
+            if (p->vertice) free(p->vertice);
+            return FALSE;
+        }
         temp.vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
+        if (temp.vertice == NULL) {
+            if (p->vertice) free(p->vertice);
+            return FALSE;
+        }
+        int read_error = FALSE;
         for (int j = 0; j < temp.n; j++) {
-            fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp);
-            fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp);
+            if (fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
+                fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp) != 1) {
+                read_error = TRUE;
+                break;
+            }
+        }
+        if (read_error) {
+            free(temp.vertice);
+            if (p->vertice) free(p->vertice);
+            return FALSE;
         }
         PTYPE area = area_polygon(temp);
         if (!found || area < min_area) {
@@ -136,7 +164,11 @@ int minAreaPolygone(FILE* fp, Polygone* p) {
             }
             p->n = temp.n;
             p->vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
-            for (int j = 0; j < temp.n; j++){
+            if (p->vertice == NULL) {
+                free(temp.vertice);
+                return FALSE;
+            }
+            for (int j = 0; j < temp.n; j++) {
                 p->vertice[j].x = temp.vertice[j].x;
                 p->vertice[j].y = temp.vertice[j].y;
             }
@@ -145,7 +177,7 @@ int minAreaPolygone(FILE* fp, Polygone* p) {
     }
     return found;
 }
-
+/*
 int isConvexPolygone(const Polygone* p) {
     if (p->n < 3) return FALSE;
     int sign = 0;
@@ -190,7 +222,7 @@ NTYPE numberConvexPolygones(FILE* fp) {
     return count;
 }
 */
-
+/*
 int isEqualPoint(struct TPoint a, struct TPoint b)
 {
     return fabs(a.x - b.x) < 1e-6 && fabs(a.y - b.y) < 1e-6;
@@ -269,4 +301,75 @@ int isPresentPolygone(FILE *fp, const struct Polygone *p)
     }
 
     return FALSE; // to func
+}
+*/
+
+PTYPE perimeter_polygon(Polygone p) {
+    if (p.n < 2) return 0;  
+    PTYPE perim = 0;
+    for (int i = 0; i < p.n - 1; i++) {
+        TVECT v = setVector(p.vertice[i], p.vertice[i + 1]);
+        perim += lengthVector(v);
+    }
+    TVECT v_last = setVector(p.vertice[p.n - 1], p.vertice[0]);
+    perim += lengthVector(v_last);
+    return perim;
+}
+
+int maxPerimeterPolygone(FILE* fp, Polygone* p) {
+    assert(fp != NULL);
+    assert(p != NULL);
+    p->vertice = NULL;
+    p->n = 0;
+    Polygone temp;
+    PTYPE max_perim = 0;
+    int found = FALSE;
+    unsigned int M;
+    if (fread(&M, sizeof(unsigned int), 1, fp) != 1) {
+        return FALSE;
+    }
+    for (int i = 0; i < M; i++) {
+        if (fread(&temp.n, sizeof(unsigned int), 1, fp) != 1) {
+            if (p->vertice) free(p->vertice);
+            return FALSE;
+        }
+        temp.vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
+        if (temp.vertice == NULL) {
+            if (p->vertice) free(p->vertice);
+            return FALSE;
+        }
+        int read_error = FALSE;
+        for (int j = 0; j < temp.n; j++) {
+            if (fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
+                fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp) != 1) {
+                read_error = TRUE;
+                break;
+            }
+        }
+        if (read_error) {
+            free(temp.vertice);
+            if (p->vertice) free(p->vertice);
+            return FALSE;
+        }
+        PTYPE perim = perimeter_polygon(temp);
+        if (!found || perim > max_perim) {
+            max_perim = perim;
+            found = TRUE;
+            if (p->vertice) {
+                free(p->vertice);
+            }
+            p->n = temp.n;
+            p->vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
+            if (p->vertice == NULL) {
+                free(temp.vertice);
+                return FALSE;
+            }
+            for (int j = 0; j < temp.n; j++) {
+                p->vertice[j].x = temp.vertice[j].x;
+                p->vertice[j].y = temp.vertice[j].y;
+            }
+        }
+        free(temp.vertice);
+    }
+    return found;
 }
