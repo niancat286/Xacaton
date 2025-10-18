@@ -11,16 +11,16 @@
 int inputPolygone(FILE* fp, Polygone* p){
 
     NTYPE n;
-    
+
     if(fp)
-        fscanf(fp,"%u",&n);    
+        fscanf(fp,"%u",&n);
     else{
         printf("N=");
         fscanf(stdin," %u",&n);
     }
 
     if(n<=2) return FALSE;
-    
+
     p->n = n;
     p->vertice = (TPoint*) malloc(n * 2 * sizeof(TPoint));
     int scan_res = 0;
@@ -45,7 +45,7 @@ int writePolygone(FILE* fp, Polygone* p) {
     assert(fp != 0);
     assert(p != 0);
     //
-    
+
 }
 
 void showPolygonesFile(FILE* fp) {
@@ -55,7 +55,7 @@ void showPolygonesFile(FILE* fp) {
         if (polygones[i].n == 0) {
             break;
         }
-        outputPolygon(polygones[i]); 
+        outputPolygon(polygones[i]);
         i++;
     }
 }
@@ -73,8 +73,8 @@ int freePolygone(Polygone* p){
 }
 
 PTYPE area_polygon(Polygone p) {
- 
- 
+
+
 }
 
 NTYPE inPolygon(Polygone p, TPoint point) {
@@ -191,28 +191,34 @@ NTYPE numberConvexPolygones(FILE* fp) {
 }
 */
 
-int isEqualPoint(struct TPoint a, struct TPoint b) {
+int isEqualPoint(struct TPoint a, struct TPoint b)
+{
     return fabs(a.x - b.x) < 1e-6 && fabs(a.y - b.y) < 1e-6;
 }
 
+int isEqualPolygone(const struct Polygone *p1, const struct Polygone *p2)
+{
+    if (p1->n != p2->n)
+        return FALSE; // тоді у нас різна кількість вершин
 
-int isEqualPolygone(const struct Polygone* p1,const struct Polygone* p2){
-    if (p1->n != p2->n) return FALSE; // тоді у нас різна кількість вершин
-
-    int n = p->n;
+    int n = p1->n; // p1, not p
     int start = -1;
 
-    for (int i = 0; i < n; i++) {
-        if (isEqualPoint(p1->vertice[0], p2->vertice[i])) {
+    for (int i = 0; i < n; i++)
+    {
+        if (isEqualPoint(p1->vertice[0], p2->vertice[i]))
+        {
             start = i;
             break;
         }
     }
-    if (start == -1) return FALSE;
+    if (start == -1)
+        return FALSE;
 
     int same_dir = TRUE;
     int opposite_dir = TRUE;
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++)
+    {
         int j = (start + i) % n;
         int k = (start - i + n) % n;
         if (!isEqualPoint(p1->vertice[i], p2->vertice[j]))
@@ -223,33 +229,44 @@ int isEqualPolygone(const struct Polygone* p1,const struct Polygone* p2){
     return (same_dir || opposite_dir);
 }
 
-
-int isPresentPolygone(FILE* fp, const struct Polygone* p){
+int isPresentPolygone(FILE *fp, const struct Polygone *p)
+{
     assert(fp != NULL);
     rewind(fp);
 
     unsigned int M;
-    if (fread(&M, sizeof(unsigned int), 1, fp) != 1) return FALSE;
+    if (fread(&M, sizeof(unsigned int), 1, fp) != 1)
+        return FALSE;
 
+    for (unsigned int i = 0; i < M; i++)
+    {
+        struct Polygone temp;
+        if (fread(&temp.n, sizeof(unsigned int), 1, fp) != 1)
+        {
+            return FALSE; // break -> FALSE
+        }
 
-    struct Polygone temp;
-    if (fread(&temp.n, sizeof(unsigned int), 1, fp) != 1) break;
+        temp.vertice = (TPoint *)malloc(temp.n * sizeof(TPoint));
+        if (temp.vertice == NULL)
+            return FALSE;
 
-    temp.vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
-    for (unsigned int j = 0; j < temp.n; j++) {
-        fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp);
-        fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp);
+        for (unsigned int j = 0; j < temp.n; j++)
+        {
+            // add validation
+            if (fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
+                fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp) != 1)
+            {
+                free(temp.vertice);
+                return FALSE;
+            }
+        }
+
+        int equal = isEqualPolygone(p, &temp);
+        free(temp.vertice);
+
+        if (equal)
+            return TRUE;
     }
 
-    int equal = isEqualPolygone(p, &temp);
-    free(temp.vertice);
-
-    if (equal) return TRUE;
+    return FALSE; // to func
 }
-
-return FALSE;
-}
-
-
-
-

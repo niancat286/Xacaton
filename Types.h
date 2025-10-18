@@ -1,58 +1,60 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-//#ifdef __cpluslus
-//extern "C"{
-//#endif
+// #ifdef __cpluslus
+// extern "C"{
+// #endif
 
-typedef unsigned NTYPE;
+typedef unsigned int NTYPE;
 typedef float PTYPE;
 
-#define TRUE  1
+#define TRUE 1
 #define FALSE 0
 
-typedef struct TPoint{
-    PTYPE x;
-    PTYPE y;
-}TPoint;
+typedef struct TPoint
+{
+   PTYPE x;
+   PTYPE y;
+} TPoint;
 
-typedef struct Polygone{
+typedef struct Polygone
+{
    NTYPE n; // power of Polynome
    TPoint *vertice;
-}Polygone;
+} Polygone;
 
 // line: ax +by +c=0
-typedef struct Line{
+typedef struct Line
+{
    PTYPE a;
    PTYPE b;
    PTYPE c;
 } TLine;
 
-
 // line: ax +by +c=0
-typedef struct Ray{
+typedef struct Ray
+{
    TPoint start_point;
    TPoint direction_point;
 } TRay;
 
 // Segemnt is given by two Points
-typedef struct Segment{
+typedef struct Segment
+{
    TPoint pointA;
    TPoint pointB;
 } TSegment;
 
-
 // Segemnt is given by two Points
-typedef struct Triangle{
+typedef struct Triangle
+{
    TPoint pointA;
    TPoint pointB;
    TPoint pointC;
 } TTriangle;
 
-
-//#ifdef __cpluslus
-//}
-//#endif /// end of __cpluslus
+// #ifdef __cpluslus
+// }
+// #endif /// end of __cpluslus
 
 #endif // end of _TYPES_H_
-

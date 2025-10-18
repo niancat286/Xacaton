@@ -24,3 +24,31 @@ clean:
 
 
 
+# Для вінди друзякі собі
+# CC = gcc
+
+# CFLAGS = -g -Wall -Wextra
+# LDFLAGS =
+
+# TARGET = RunTests.exe
+
+
+# SRCS = main.c Polygone.c testsPolygone.c Predicat.c vectors.c linerays.c
+
+# OBJS = $(SRCS:.c=.o)
+
+# all: $(TARGET)
+
+# $(TARGET): $(OBJS)
+# 	$(CC) $(LDFLAGS) -o $@ $^
+
+# %.o: %.c
+# 	$(CC) $(CFLAGS) -c $< -o $@
+
+
+# clean:
+# ifeq ($(OS),Windows_NT)
+# 	-del /F /Q *.o $(TARGET) > nul 2>&1
+# else
+# 	-rm -f *.o $(TARGET)
+# endif
