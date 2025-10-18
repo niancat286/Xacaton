@@ -18,6 +18,8 @@ int testShowPolygoneFile(); // 3 tests
 extern int test_isPresentPolygone();
 
 extern int test_isEqualPolygone();
+
+extern int test_conditionPolygones();
 /*
 extern PTYPE perimeterPolygone(const Polygone* p);
 
@@ -32,6 +34,7 @@ extern int minAreaPolygone(FILE* fp, Polygone* p);
 extern NTYPE numberConvexPolygones(FILE* fp);
 
 extern NTYPE conditionPolygones(FILE* fp, predicatPolygone Q, const char* fname);
+
 
 extern NTYPE pointsPolygones(FILE* fp, TPoint p);
 extern NTYPE linePolygones(FILE* fp, TLine L);
