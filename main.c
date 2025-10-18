@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "Polygone.h"
 #include <stdlib.h>
+#include "testsPolygone.h"
 
 void clear_input_buffer() {
     int c;
@@ -141,6 +142,8 @@ int main() {
                 printf("Invalid choice. Please try again.\n");
         }
     } while (choice != 0);
+
+    run_all_tests(); // запис у консоль + файл
 
     return 0;
 }
