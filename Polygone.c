@@ -3,8 +3,6 @@
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
-#include <unistd.h>
-
 
 #include "Polygone.h"
 #include "file_forming.h"
@@ -27,7 +25,6 @@ int inputPolygone(FILE* fp, Polygone* p){
     p->n = n;
     p->vertice = (TPoint*) malloc(n * 2 * sizeof(TPoint));
     int scan_res = 0;
-    // ....
     return TRUE;
 }
 
@@ -70,7 +67,7 @@ PTYPE area(TPoint p1, TPoint p2, TPoint p3) {
 }
 
 int freePolygone(Polygone* p){
-    if(p->vertice)free(p->vertice);
+    if(p->vertice) free(p->vertice);
     return 0;
 }
 
@@ -196,79 +193,88 @@ NTYPE numberConvexPolygones(FILE* fp) {
     return count;
 }
 
-int deletePolygonesFile(FILE* fp, NTYPE k) {
-    if (fp == NULL) return FALSE;
-    if (fseek(fp, 0, SEEK_SET) != 0) rewind(fp);
-    unsigned int M;
-    if (fread(&M, sizeof(unsigned int), 1, fp) != 1) return FALSE;
-    if (M == 0) return FALSE;
-    Polygone* arr = (Polygone*) malloc(sizeof(Polygone) * M);
-    if (!arr) return FALSE;
-    for (unsigned int i = 0; i < M; ++i) {
-        unsigned int n;
-        if (fread(&n, sizeof(unsigned int), 1, fp) != 1) {
-            for (unsigned int t = 0; t < i; ++t) free(arr[t].vertice);
-            free(arr);
-            return FALSE;
-        }
-        arr[i].n = n;
-        arr[i].vertice = (TPoint*) malloc(sizeof(TPoint) * n);
-        if (!arr[i].vertice) {
-            for (unsigned int t = 0; t < i; ++t) free(arr[t].vertice);
-            free(arr);
-            return FALSE;
-        }
-        for (unsigned int j = 0; j < n; ++j) {
-            if (fread(&arr[i].vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
-                fread(&arr[i].vertice[j].y, sizeof(PTYPE), 1, fp) != 1) {
-                for (unsigned int t = 0; t <= i; ++t) free(arr[t].vertice);
-                free(arr);
-                return FALSE;
-            }
-        }
-    }
-    if ((unsigned int)k >= M) {
-        for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
-        free(arr);
-        return FALSE;
-    }
-    int fd = fileno(fp);
-    if (fd < 0) {
-        for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
-        free(arr);
-        return FALSE;
-    }
-    if (ftruncate(fd, 0) != 0) {
-        for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
-        free(arr);
-        return FALSE;
-    }
-    if (fseek(fp, 0, SEEK_SET) != 0) rewind(fp);
-    unsigned int newM = M - 1;
-    if (fwrite(&newM, sizeof(unsigned int), 1, fp) != 1) {
-        for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
-        free(arr);
-        return FALSE;
-    }
-    for (unsigned int i = 0; i < M; ++i) {
-        if (i == (unsigned)k) continue;
-        unsigned int n = arr[i].n;
-        if (fwrite(&n, sizeof(unsigned int), 1, fp) != 1) {
-            for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
-            free(arr);
-            return FALSE;
-        }
-        for (unsigned int j = 0; j < n; ++j) {
-            if (fwrite(&arr[i].vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
-                fwrite(&arr[i].vertice[j].y, sizeof(PTYPE), 1, fp) != 1) {
-                for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
-                free(arr);
-                return FALSE;
-            }
-        }
-    }
-    fflush(fp);
-    for (unsigned int t = 0; t < M; ++t) free(arr[t].vertice);
-    free(arr);
-    return TRUE;
-}
+#ifdef RUN_POLYGONE_SELFTEST
+
+// #include <stdio.h>
+// #include <string.h>
+
+// static int float_eq(float a, float b) {
+//     float d = a - b;
+//     if (d < 0) d = -d;
+//     return d < 1e-5f;
+// }
+
+// static void test_area() {
+//     TPoint p1 = {0.f, 0.f};
+//     TPoint p2 = {3.f, 0.f};
+//     TPoint p3 = {0.f, 4.f};
+//     float a = area(p1, p2, p3);
+//     assert(float_eq(a, 6.0f));
+// }
+
+// static void test_write_and_read_binary() {
+//     Polygone p;
+//     p.n = 3;
+//     p.vertice = (TPoint*) malloc(sizeof(TPoint) * 3);
+//     p.vertice[0].x = 0.0f; p.vertice[0].y = 0.0f;
+//     p.vertice[1].x = 1.0f; p.vertice[1].y = 0.0f;
+//     p.vertice[2].x = 0.0f; p.vertice[2].y = 1.0f;
+
+//     const char *fname = "test_bin_polys.bin";
+//     FILE *f = fopen(fname, "wb");
+//     assert(f != NULL);
+//     unsigned int M = 1;
+//     fwrite(&M, sizeof(unsigned int), 1, f);
+//     int wr = writePolygone_binary(f, &p);
+//     assert(wr == 1);
+//     fclose(f);
+
+//     FILE *fr = fopen(fname, "rb");
+//     assert(fr != NULL);
+//     unsigned int Mr;
+//     fread(&Mr, sizeof(unsigned int), 1, fr);
+//     assert(Mr == 1);
+//     unsigned int nr;
+//     fread(&nr, sizeof(unsigned int), 1, fr);
+//     assert(nr == 3);
+//     TPoint *verts = (TPoint*) malloc(sizeof(TPoint) * nr);
+//     for (unsigned int i = 0; i < nr; ++i) {
+//         fread(&verts[i].x, sizeof(PTYPE), 1, fr);
+//         fread(&verts[i].y, sizeof(PTYPE), 1, fr);
+//     }
+//     fclose(fr);
+
+//     assert(float_eq(verts[0].x, p.vertice[0].x));
+//     assert(float_eq(verts[0].y, p.vertice[0].y));
+//     assert(float_eq(verts[1].x, p.vertice[1].x));
+//     assert(float_eq(verts[1].y, p.vertice[1].y));
+//     assert(float_eq(verts[2].x, p.vertice[2].x));
+//     assert(float_eq(verts[2].y, p.vertice[2].y));
+
+//     free(verts);
+//     free(p.vertice);
+//     remove(fname);
+// }
+
+// static void test_area_polygon() {
+//     Polygone p;
+//     p.n = 4;
+//     p.vertice = (TPoint*) malloc(sizeof(TPoint) * 4);
+//     p.vertice[0].x = 0.f; p.vertice[0].y = 0.f;
+//     p.vertice[1].x = 0.f; p.vertice[1].y = 4.f;
+//     p.vertice[2].x = 4.f; p.vertice[2].y = 4.f;
+//     p.vertice[3].x = 4.f; p.vertice[3].y = 0.f;
+//     PTYPE ar = area_polygon(p);
+//     assert(float_eq((float)ar, 16.0f));
+//     free(p.vertice);
+// }
+
+// int main(void) {
+//     test_area();
+//     test_write_and_read_binary();
+//     test_area_polygon();
+//     printf("Self-tests passed.\n");
+//     return 0;
+// }
+
+#endif
