@@ -34,7 +34,17 @@ extern NTYPE conditionPolygones(FILE* fp, predicatPolygone Q, const char* fname)
 extern NTYPE pointsPolygones(FILE* fp, TPoint p);
 extern NTYPE linePolygones(FILE* fp, TLine L);
 extern NTYPE rayPolygones(FILE* fp, TRay R);    
-....
+
+// Tests for new functions
+extern int test_inputPolygone_file();
+extern int test_inputPolygone_invalid();
+extern int test_writePolygone();
+extern int test_addPolygonesFromFile();
+extern int test_isEqualPolygone();
+extern int test_perimeterPolygone();
+
+// Test utilities
+extern void createTestFile(const char* filename);
 
 
 

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "Types.h"
 
-extern void outputPolygon(Polygone p);
+extern void outputPolygone(const Polygone* p, FILE* fp);
 
 extern void input();
 
