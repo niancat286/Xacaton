@@ -177,7 +177,7 @@ int minAreaPolygone(FILE* fp, Polygone* p) {
     }
     return found;
 }
-/*
+
 int isConvexPolygone(const Polygone* p) {
     if (p->n < 3) return FALSE;
     int sign = 0;
@@ -187,7 +187,9 @@ int isConvexPolygone(const Polygone* p) {
         TPoint p3 = p->vertice[(i + 2) % p->n];
         TVECT v1 = setVector(p1, p2);
         TVECT v2 = setVector(p2, p3);
-        /// Векторний добуток
+        /// Cross product
+        TVECT cross_product = vectorMultVector(v1, v2);
+        PTYPE cross_product_z = cross_product.z;
 
         if (cross_product_z != 0) {
             int current_sign = (cross_product_z > 0) ? 1 : -1;
@@ -200,6 +202,8 @@ int isConvexPolygone(const Polygone* p) {
     }
     return TRUE;
 }
+
+/*
 
 NTYPE numberConvexPolygones(FILE* fp) {
     assert(fp != NULL);
