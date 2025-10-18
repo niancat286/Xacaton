@@ -443,3 +443,43 @@ int test_isPresentPolygone() {
 
     return passed;
 }
+
+
+int test_conditionPolygones() {
+    char input_name[64];
+    char output_name[64];
+    FILE* fp;
+    int allPassed = TRUE;
+
+    for (int i = 1; i <= 6; i++) {
+        snprintf(input_name, sizeof(input_name), "test_%d.txt", i);
+        snprintf(output_name, sizeof(output_name), "conditional_test_output_%d.txt", i);
+
+        fp = fopen(input_name, "rb");
+        if (fp == NULL) {
+            printf("Cannot open %s\n", input_name);
+            allPassed = FALSE;
+            continue;
+        }
+
+        printf("Processing %s -> %s ...\n", input_name, output_name);
+
+        NTYPE count = conditionPolygones(fp, isConvexPolygone, output_name);
+        fclose(fp);
+
+        if (count == 0) {
+            printf("Test %d failed: no polygons processed or error occurred.\n", i);
+            allPassed = FALSE;
+        } else {
+            printf("Test %d passed: %d polygons processed.\n", i, count);
+        }
+    }
+
+    if (allPassed) {
+        printf("All tests files processed.\n");
+        return TRUE;
+    } else {
+        printf("Some tests failed.\n");
+        return FALSE;
+    }
+}
