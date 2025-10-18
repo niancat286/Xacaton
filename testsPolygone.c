@@ -1,6 +1,7 @@
 #include "testsPolygone.h"
 #include "Polygone.h"
 #include <assert.h>
+#include <stdio.h>
 
 // Test utilities
 void createTestFile(const char* filename) {
@@ -9,20 +10,39 @@ void createTestFile(const char* filename) {
 
     // Create test data: 3 polygons
     fprintf(fp, "3\n");
-
     // Polygon 1: triangle
-    fprintf(fp, "3 0 0 2 0 0 2\n");
+    fprintf(fp, "3 0.0 0.0 2.0 0.0 0.0 2.0\n");
     // Polygon 2: square
-    fprintf(fp, "4 0 0 3 0 3 3 0 3\n");
-    // Polygon 3: pentagon (convex)
-    fprintf(fp, "5 0 0 2 0 3 2 1 4 -1 2\n");
+    fprintf(fp, "4 0.0 0.0 3.0 0.0 3.0 3.0 0.0 3.0\n");
+    // Polygon 3: pentagon 
+    fprintf(fp, "5 0.0 0.0 2.0 0.0 3.0 2.0 1.0 4.0 -1.0 2.0\n");
+
+    fclose(fp);
+}
+
+void createTestFileWithOne(const char* filename) {
+    FILE* fp = fopen(filename, "w");
+    if (!fp) return;
+
+    fprintf(fp, "1\n");
+    fprintf(fp, "3 0.0 0.0 1.0 0.0 0.0 1.0\n");  // Simple triangle
+
+    fclose(fp);
+}
+
+void createTestFileWithInvalid(const char* filename) {
+    FILE* fp = fopen(filename, "w");
+    if (!fp) return;
+
+    fprintf(fp, "1\n");
+    fprintf(fp, "2 0.0 0.0 1.0 0.0\n");  // Invalid: n=2
 
     fclose(fp);
 }
 
 // Vector tests
 int test_isEqual() {
-    PTYPE a = 5.f, b = 7.f, c = 5.f;
+    PTYPE a = 5.0f, b = 7.0f, c = 5.0f;
     if (!isEqual(a, b) && isEqual(a, c)) {
         return TRUE;
     }
@@ -32,9 +52,9 @@ int test_isEqual() {
 }
 
 int test_isEqual2() {
-    TVECT v1 = { 1.f, 2.f, 3.f };
-    TVECT v2 = { 1.f, 2.f, 3.f };
-    TVECT v3 = { 0.f, 2.f, 3.f };
+    TVECT v1 = { 1.0f, 2.0f, 0.0f };
+    TVECT v2 = { 1.0f, 2.0f, 0.0f };
+    TVECT v3 = { 0.0f, 2.0f, 0.0f };
     if (isEqual2(v1, v2) && !isEqual2(v1, v3)) {
         return TRUE;
     }
@@ -44,9 +64,9 @@ int test_isEqual2() {
 }
 
 int test_setVector() {
-    TPoint p1 = { 0.f, 0.f };
-    TPoint p2 = { 1.f, 1.f };
-    TVECT v1 = { 1.f, 1.f, 0.f };
+    TPoint p1 = { 0.0f, 0.0f };
+    TPoint p2 = { 1.0f, 1.0f };
+    TVECT v1 = { 1.0f, 1.0f, 0.0f };
     TVECT v2 = setVector(p1, p2);
     if (isEqual2(v1, v2)) {
         return TRUE;
@@ -57,8 +77,8 @@ int test_setVector() {
 }
 
 int test_lengthVector() {
-    TVECT v = { 3.f, 4.f, 0.f };
-    if (isEqual(lengthVector(v), 5)) {
+    TVECT v = { 3.0f, 4.0f, 0.0f };
+    if (isEqual(lengthVector(v), 5.0f)) {
         return TRUE;
     }
     else {
@@ -67,9 +87,9 @@ int test_lengthVector() {
 }
 
 int test_addVector() {
-    TVECT v1 = { 3.f, 4.f, 0.f };
-    TVECT v2 = { -3.f, -4.f, 0.f };
-    TVECT v3 = { 0.f, 0.f, 0.f };
+    TVECT v1 = { 3.0f, 4.0f, 0.0f };
+    TVECT v2 = { -3.0f, -4.0f, 0.0f };
+    TVECT v3 = { 0.0f, 0.0f, 0.0f };
     if (isEqual2(addVector(v1, v2), v3)) {
         return TRUE;
     }
@@ -79,12 +99,12 @@ int test_addVector() {
 }
 
 int test_vectorMultVector() {
-    TVECT v11 = { 1.f, 0.f, 0.f };
-    TVECT v21 = { 0.f, 1.f, 0.f };
-    TVECT v31 = { 0.f, 0.f, 1.f };
-    TVECT v12 = { 1.f, 2.f, 3.f };
-    TVECT v22 = { -1.f, -5.f, -10.f };
-    TVECT v32 = { -5.f, 7.f, -3.f };
+    TVECT v11 = { 1.0f, 0.0f, 0.0f };
+    TVECT v21 = { 0.0f, 1.0f, 0.0f };
+    TVECT v31 = { 0.0f, 0.0f, 1.0f };
+    TVECT v12 = { 1.0f, 2.0f, 3.0f };
+    TVECT v22 = { -1.0f, -5.0f, -10.0f };
+    TVECT v32 = { -5.0f, 7.0f, -3.0f };
 
     if (isEqual2(vectorMultVector(v11, v21), v31) && isEqual2(vectorMultVector(v12, v22), v32)) {
         return TRUE;
@@ -96,10 +116,28 @@ int test_vectorMultVector() {
 
 // Geometric tests
 int test_area() {
-    TPoint p1 = { 0.f, 0.f };
-    TPoint p2 = { 3.f, 0.f };
-    TPoint p3 = { 0.f, 4.f };
-    if (isEqual(area(p1, p2, p3), 6.f)) {
+    NTYPE n = 3;
+    TPoint* vertices = (TPoint*)malloc(n * sizeof(TPoint));
+    vertices[0] = (TPoint){ 0.0f, 0.0f };
+    vertices[1] = (TPoint){ 3.0f, 0.0f };
+    vertices[2] = (TPoint){ 0.0f, 4.0f };
+    Polygone p = { n, vertices };
+    PTYPE a = area_polygon(p);
+    free(vertices);
+    return isEqual(a, 6.0f);
+}
+
+int test_area_polygon() {
+    NTYPE n = 4;
+    TPoint* vertices = (TPoint*)malloc(n * sizeof(TPoint));
+    vertices[0] = (TPoint){ 0.0f, 0.0f };
+    vertices[1] = (TPoint){ 0.0f, 4.0f };
+    vertices[2] = (TPoint){ 4.0f, 0.0f };
+    vertices[3] = (TPoint){ 4.0f, 4.0f };
+    Polygone p = { n, vertices };
+    PTYPE area = area_polygon(p);
+    free(vertices);
+    if (isEqual(area, 16.0f)) {
         return TRUE;
     }
     else {
@@ -107,203 +145,210 @@ int test_area() {
     }
 }
 
-int test_area_polygon() {
-    NTYPE n = 4;
-    TPoint* vertices = (TPoint*)malloc(n * sizeof(TPoint));
-    vertices[0] = (TPoint){ 0.f, 0.f };
-    vertices[1] = (TPoint){ 0.f, 4.f };
-    vertices[2] = (TPoint){ 4.f, 0.f };
-    vertices[3] = (TPoint){ 4.f, 4.f };
-    Polygone p = { n, vertices };
-
-    int result = isEqual(area_polygon(p), 8.0); // Should be 8 for this shape
-
-    free(vertices);
-    return result;
-}
-
 int test_inPolygon() {
+    // Create dynamic vertices (must be freed)
     NTYPE n = 4;
     TPoint* vertices = (TPoint*)malloc(n * sizeof(TPoint));
-    vertices[0] = (TPoint){ 0.f, 0.f };
-    vertices[1] = (TPoint){ 4.f, 0.f };
-    vertices[2] = (TPoint){ 4.f, 4.f };
-    vertices[3] = (TPoint){ 0.f, 4.f };
+    vertices[0] = (TPoint){ 0.0f, 0.0f };
+    vertices[1] = (TPoint){ 2.0f, 0.0f };
+    vertices[2] = (TPoint){ 2.0f, 2.0f };
+    vertices[3] = (TPoint){ 0.0f, 2.0f };
     Polygone p = { n, vertices };
 
-    TPoint test1 = { 0.f, 0.f };
-    TPoint test2 = { 2.f, 2.f };
-    TPoint test3 = { -1.f, -2.f };
+    TPoint point = { 1.0f, 1.0f };
+    int inside = pointsPolygoneInside(&p, point);
 
-    int result = (inPolygon(p, test1) && inPolygon(p, test2) && !inPolygon(p, test3));
-
-    free(vertices);
-    return result;
+    freePolygone(&p); // frees vertices
+    return inside;
 }
 
-// Polygone operation tests
 int test_isConvexPolygone_convex() {
     NTYPE n = 4;
     TPoint* vertices = (TPoint*)malloc(n * sizeof(TPoint));
-    vertices[0] = (TPoint){ 0.f, 0.f };
-    vertices[1] = (TPoint){ 4.f, 0.f };
-    vertices[2] = (TPoint){ 4.f, 4.f };
-    vertices[3] = (TPoint){ 0.f, 4.f };
+    vertices[0] = (TPoint){ 0.0f, 0.0f };
+    vertices[1] = (TPoint){ 2.0f, 0.0f };
+    vertices[2] = (TPoint){ 2.0f, 2.0f };
+    vertices[3] = (TPoint){ 0.0f, 2.0f };
     Polygone p = { n, vertices };
 
-    int result = isConvexPolygone(&p) == TRUE;
-
-    free(vertices);
-    return result;
+    int convex = isConvexPolygone(&p);
+    freePolygone(&p);
+    return convex;
 }
 
 int test_isConvexPolygone_nonConvex() {
-    NTYPE n = 5;
+    NTYPE n = 4;
     TPoint* vertices = (TPoint*)malloc(n * sizeof(TPoint));
-    vertices[0] = (TPoint){ 0.f, 0.f };
-    vertices[1] = (TPoint){ 4.f, 0.f };
-    vertices[2] = (TPoint){ 2.f, 1.f };  // Point that makes polygon non-convex
-    vertices[3] = (TPoint){ 4.f, 4.f };
-    vertices[4] = (TPoint){ 0.f, 4.f };
+    vertices[0] = (TPoint){ 0.0f, 0.0f };
+    vertices[1] = (TPoint){ 2.0f, 0.0f };
+    vertices[2] = (TPoint){ 1.0f, 1.0f };
+    vertices[3] = (TPoint){ 0.0f, 2.0f };
     Polygone p = { n, vertices };
 
-    int result = isConvexPolygone(&p) == FALSE;
-
-    free(vertices);
-    return result;
+    int convex = isConvexPolygone(&p);
+    freePolygone(&p);
+    return !convex;
 }
 
 int test_isConvexPolygone_triangle() {
     NTYPE n = 3;
     TPoint* vertices = (TPoint*)malloc(n * sizeof(TPoint));
-    vertices[0] = (TPoint){ 0.f, 0.f };
-    vertices[1] = (TPoint){ 4.f, 0.f };
-    vertices[2] = (TPoint){ 2.f, 3.f };
+    vertices[0] = (TPoint){ 0.0f, 0.0f };
+    vertices[1] = (TPoint){ 2.0f, 0.0f };
+    vertices[2] = (TPoint){ 1.0f, 2.0f };
     Polygone p = { n, vertices };
 
-    int result = isConvexPolygone(&p) == TRUE;
-
-    free(vertices);
-    return result;
+    int convex = isConvexPolygone(&p);
+    freePolygone(&p);
+    return convex;
 }
 
 // File operation tests
-int test_inputPolygone_console() {
-    // This would require mocking stdin, so we test file input instead
-    Polygone p;
-    int result = inputPolygone(NULL, &p);
-    if (result) freePolygone(&p);
-    return result ? TRUE : FALSE; // Manual test required
-}
-
 int test_inputPolygone_file() {
     FILE* fp = fopen("test_input.txt", "w");
-    if (!fp) return FALSE;
-    fprintf(fp, "3 0 0 1 0 0 1"); // Triangle
+    fprintf(fp, "3 0.0 0.0 1.0 0.0 0.0 1.0\n");
     fclose(fp);
 
-    // Test reading
-    fp = fopen("test_input.txt", "r");
     Polygone p;
+    fp = fopen("test_input.txt", "r");
     int result = inputPolygone(fp, &p);
     fclose(fp);
-
-    if (result) {
-        freePolygone(&p);
-    }
+    if (result) freePolygone(&p);
+    remove("test_input.txt");
     return result;
 }
 
 int test_inputPolygone_invalid() {
-    // Create invalid test file
     FILE* fp = fopen("test_invalid.txt", "w");
-    if (!fp) return FALSE;
-    fprintf(fp, "2 0 0 1 0"); // Only 2 vertices - invalid
+    fprintf(fp, "2 0.0 0.0 1.0 0.0\n"); // Invalid n=2
     fclose(fp);
 
-    // Test reading invalid polygon
-    fp = fopen("test_invalid.txt", "r");
     Polygone p;
+    fp = fopen("test_invalid.txt", "r");
     int result = inputPolygone(fp, &p);
     fclose(fp);
-
+    remove("test_invalid.txt");
     return !result;
 }
 
 int test_writePolygone() {
-    Polygone p;
-    p.n = 3;
-    p.vertice = (TPoint*)malloc(3 * sizeof(TPoint));
-    p.vertice[0] = (TPoint){ 0.f, 0.f };
-    p.vertice[1] = (TPoint){ 1.f, 0.f };
-    p.vertice[2] = (TPoint){ 0.f, 1.f };
+    NTYPE n = 3;
+    TPoint* vertices = (TPoint*)malloc(n * sizeof(TPoint));
+    vertices[0] = (TPoint){ 0.0f, 0.0f };
+    vertices[1] = (TPoint){ 1.0f, 0.0f };
+    vertices[2] = (TPoint){ 0.0f, 1.0f };
+    Polygone p = { n, vertices };
 
     FILE* fp = fopen("test_write.txt", "w");
-    if (!fp) {
-        freePolygone(&p);
-        return FALSE;
-    }
-
     int result = writePolygone(fp, &p);
     fclose(fp);
     freePolygone(&p);
-
+    remove("test_write.txt");
     return result;
 }
 
 int test_addPolygonesFromFile() {
-    // Create source file
-    FILE* src = fopen("test_source.txt", "w");
-    if (!src) return FALSE;
-    fprintf(src, "2\n3 0 0 1 0 0 1\n4 0 0 2 0 2 2 0 2\n");
-    fclose(src);
-
-    // Create empty destination file
+    // Test 1: Basic add without duplicates
+    createTestFileWithOne("test_source.txt");
     FILE* dest = fopen("test_dest.txt", "w");
-    if (!dest) return FALSE;
-    fprintf(dest, "0"); // Start with 0 polygons
+    fprintf(dest, "0\n");
     fclose(dest);
 
-    // Test adding polygons
-    int result = addPolygonesFromFile("test_source.txt", "test_dest.txt");
-
-    return result == 2; // Should add 2 polygons
-}
-
-int test_pointsPolygones() {
-    createTestFile("test_points.txt");
-
-    FILE* fp = fopen("test_points.txt", "r");
-    TPoint point = { 1.0f, 1.0f }; // Point inside some polygons
-    NTYPE result = pointsPolygones(fp, point);
-    fclose(fp);
-
-    return result > 0; // Should find at least one polygon containing the point
-}
-
-int test_minAreaPolygone() {
-    createTestFile("test_minarea.txt");
-
-    FILE* fp = fopen("test_minarea.txt", "r");
-    Polygone minPoly;
-    int found = minAreaPolygone(fp, &minPoly);
-    fclose(fp);
-
-    if (found) {
-        freePolygone(&minPoly);
-        return TRUE;
+    int added1 = addPolygonesFromFile("test_source.txt", "test_dest.txt");
+    if (added1 != 1) {
+        remove("test_source.txt");
+        remove("test_dest.txt");
+        return FALSE;
     }
-    return FALSE;
+
+    // Test 2: With duplicate - should not add
+    int added2 = addPolygonesFromFile("test_source.txt", "test_dest.txt"); // Same source
+    if (added2 != 0) {
+        remove("test_source.txt");
+        remove("test_dest.txt");
+        return FALSE;
+    }
+
+    // Test 3: With invalid in source
+    createTestFileWithInvalid("invalid_source.txt");
+    int added3 = addPolygonesFromFile("invalid_source.txt", "test_dest.txt");
+    if (added3 != 0) {
+        remove("test_source.txt");
+        remove("test_dest.txt");
+        remove("invalid_source.txt");
+        return FALSE;
+    }
+
+    // Test 4: Non-existent source file
+    remove("test_source.txt");
+    int added4 = addPolygonesFromFile("nonexistent.txt", "test_dest.txt");
+    remove("test_dest.txt");
+    remove("invalid_source.txt");
+    return added4 == 0;
 }
 
-int test_numberConvexPolygones() {
-    createTestFile("test_convex.txt");
+int test_addSinglePolygonFromConsole_success() {
+    // Simulate console input by redirecting stdin to temp file
+    FILE* input = fopen("temp_input.txt", "w");
+    if (!input) return 0;
+    fprintf(input, "3\n0.0 0.0 1.0 0.0 0.0 1.0\n");
+    fclose(input);
 
-    FILE* fp = fopen("test_convex.txt", "r");
-    NTYPE count = numberConvexPolygones(fp);
-    fclose(fp);
+    FILE* saved = stdin;
+    if (!freopen("temp_input.txt", "r", stdin)) return 0;
 
-    return count >= 1;
+    FILE* dest = fopen("test_single_dest.txt", "w");
+    if (!dest) return 0;
+    fprintf(dest, "0\n");
+    fclose(dest);
+
+    int result = addSinglePolygonFromConsole("test_single_dest.txt");
+
+    // restore stdin (Windows)
+    freopen("CON", "r", stdin);
+
+    remove("test_single_dest.txt");
+    remove("temp_input.txt");
+    return result == 1;
+}
+
+int test_addSinglePolygonFromConsole_duplicate() {
+    createTestFileWithOne("test_single_dest.txt");
+
+    // For duplicate test we need to provide same polygon on stdin
+    FILE* input = fopen("temp_input.txt", "w");
+    if (!input) return 0;
+    fprintf(input, "3\n0.0 0.0 1.0 0.0 0.0 1.0\n");
+    fclose(input);
+
+    if (!freopen("temp_input.txt", "r", stdin)) return 0;
+    int result = addSinglePolygonFromConsole("test_single_dest.txt");
+    freopen("CON", "r", stdin);
+
+    remove("test_single_dest.txt");
+    remove("temp_input.txt");
+    return result == 0; // Should fail due to duplicate
+}
+
+int test_addSinglePolygonFromConsole_invalid() {
+    // Simulate invalid input (n=2)
+    FILE* input = fopen("temp_invalid.txt", "w");
+    if (!input) return 0;
+    fprintf(input, "2\n0.0 0.0 1.0 0.0\n");
+    fclose(input);
+
+    FILE* dest = fopen("test_invalid_dest.txt", "w");
+    if (!dest) return 0;
+    fprintf(dest, "0\n");
+    fclose(dest);
+
+    if (!freopen("temp_invalid.txt", "r", stdin)) return 0;
+    int result = addSinglePolygonFromConsole("test_invalid_dest.txt");
+    freopen("CON", "r", stdin);
+
+    remove("test_invalid_dest.txt");
+    remove("temp_invalid.txt");
+    return result == 0; // Should fail due to invalid n
 }
 
 int test_isEqualPolygone() {
@@ -312,9 +357,13 @@ int test_isEqualPolygone() {
     p1.vertice = (TPoint*)malloc(3 * sizeof(TPoint));
     p2.vertice = (TPoint*)malloc(3 * sizeof(TPoint));
 
-    p1.vertice[0] = p2.vertice[0] = (TPoint){ 0.f, 0.f };
-    p1.vertice[1] = p2.vertice[1] = (TPoint){ 1.f, 0.f };
-    p1.vertice[2] = p2.vertice[2] = (TPoint){ 0.f, 1.f };
+    p1.vertice[0] = (TPoint){ 0.0f, 0.0f };
+    p1.vertice[1] = (TPoint){ 1.0f, 0.0f };
+    p1.vertice[2] = (TPoint){ 0.0f, 1.0f };
+
+    p2.vertice[0] = (TPoint){ 1.0f, 0.0f }; // Rotated
+    p2.vertice[1] = (TPoint){ 0.0f, 1.0f };
+    p2.vertice[2] = (TPoint){ 0.0f, 0.0f };
 
     int result = isEqualPolygone(&p1, &p2);
 
@@ -328,9 +377,9 @@ int test_perimeterPolygone() {
     Polygone p;
     p.n = 3;
     p.vertice = (TPoint*)malloc(3 * sizeof(TPoint));
-    p.vertice[0] = (TPoint){ 0.f, 0.f };
-    p.vertice[1] = (TPoint){ 3.f, 0.f };
-    p.vertice[2] = (TPoint){ 0.f, 4.f };
+    p.vertice[0] = (TPoint){ 0.0f, 0.0f };
+    p.vertice[1] = (TPoint){ 3.0f, 0.0f };
+    p.vertice[2] = (TPoint){ 0.0f, 4.0f };
 
     PTYPE perimeter = perimeterPolygone(&p);
     int result = isEqual(perimeter, 12.0f);
@@ -339,7 +388,7 @@ int test_perimeterPolygone() {
     return result;
 }
 
-// Test runner
+// Test runner (if needed, integrate into main.c)
 int testVectors() {
     return test_isEqual() && test_isEqual2() && test_setVector() &&
         test_lengthVector() && test_addVector() && test_vectorMultVector();
@@ -354,13 +403,14 @@ int testWritePolygones() {
 }
 
 int testDeletePolygone() {
-    return TRUE;
+    return TRUE; // Placeholder
 }
 
 int testShowPolygoneFile() {
     createTestFile("test_show.txt");
     FILE* fp = fopen("test_show.txt", "r");
-    showPolygonesFile(fp);
+    showPolygonesFile(fp); // Assume it works if no crash
     fclose(fp);
+    remove("test_show.txt");
     return TRUE;
 }

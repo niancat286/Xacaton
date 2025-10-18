@@ -1,6 +1,5 @@
 #pragma once
 
-
 int testVectors(); // test all in 1 file they are simple
 
 int testInputPolygone(); // 3 tests enough
@@ -15,7 +14,7 @@ int testShowPolygoneFile(); // 3 tests
 //These all requires at least 3 tests each
 extern int isPresentPolygone(FILE* fp, const Polygone* p);
 
-int isEqualPolygone(const Polygone* p1,const Polygone* p2);
+int isEqualPolygone(const Polygone* p1, const Polygone* p2);
 
 extern PTYPE perimeterPolygone(const Polygone* p);
 
@@ -33,18 +32,18 @@ extern NTYPE conditionPolygones(FILE* fp, predicatPolygone Q, const char* fname)
 
 extern NTYPE pointsPolygones(FILE* fp, TPoint p);
 extern NTYPE linePolygones(FILE* fp, TLine L);
-extern NTYPE rayPolygones(FILE* fp, TRay R);    
+extern NTYPE rayPolygones(FILE* fp, TRay R);
 
 // Tests for new functions
 extern int test_inputPolygone_file();
 extern int test_inputPolygone_invalid();
 extern int test_writePolygone();
 extern int test_addPolygonesFromFile();
+extern int test_addSinglePolygonFromConsole_success();
+extern int test_addSinglePolygonFromConsole_duplicate();
+extern int test_addSinglePolygonFromConsole_invalid();
 extern int test_isEqualPolygone();
 extern int test_perimeterPolygone();
 
 // Test utilities
 extern void createTestFile(const char* filename);
-
-
-

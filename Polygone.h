@@ -1,14 +1,15 @@
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef POLYGONE_H
+#define POLYGONE_H
 
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
+#include "Types.h"
 #include "Predicat.h"
 
 // Input polygon from console (if file pointer is NULL) or from text file
 // Returns TRUE on success, FALSE on error
-extern int inputPolygone(Polygone* p, FILE* fp);
+extern int inputPolygone(FILE* fp, Polygone* p);
 
 // Output polygon to console (if file pointer is NULL) or to text file
 extern void outputPolygone(const Polygone* p, FILE* fp);
@@ -26,9 +27,13 @@ extern int writePolygones(FILE* fp, Polygone* p, NTYPE n);
 // Returns TRUE on success, FALSE on error
 extern int writePolygone(FILE* fp, Polygone* p);
 
-// Add all polygons from source file to destination file
+// Add all polygons from source file to destination file (without duplicates)
 // Returns number of polygons successfully added
 extern int addPolygonesFromFile(const char* source_filename, const char* dest_filename);
+
+// Add single polygon from console to destination file (without duplicates)
+// Returns 1 on success, 0 on failure
+extern int addSinglePolygonFromConsole(const char* dest_filename);  // Добавлено для пункта а)
 
 // Read polygons from file
 // Returns array of polygons, NULL on error
@@ -45,10 +50,10 @@ extern void showPolygoneFile(FILE* fp, NTYPE k);
 extern void showPolygonesFile(FILE* fp);
 
 
-// Check if two polygons are equal
+// Check if two polygons are equal (with rotation and reverse support)
 extern int isEqualPolygone(const Polygone* p1, const Polygone* p2);
 
-// Validate polygon structure and data
+// Validate polygon structure and data (including no self-intersect)
 // Returns TRUE if polygon is valid, FALSE otherwise
 extern int isValidPolygon(const Polygone* p);
 
@@ -59,8 +64,8 @@ extern int isPresentPolygone(FILE* fp, const Polygone* p);
 // Calculate polygon perimeter
 extern PTYPE perimeterPolygone(const Polygone* p);
 
-// Calculate polygon area
-extern PTYPE areaPolygone(const Polygone* p);
+// Calculate polygon area (соответствует реализации area_polygon)
+extern PTYPE area_polygon(Polygone p);
 
 
 // Check if polygon is convex
@@ -118,10 +123,4 @@ extern Polygone wrapper_distance(const Polygone* p1, PTYPE dist);
 // Text file reading function
 extern int readPolygoneFromText(FILE* fp, Polygone* p);
 
-// Polygon validation
-extern int isValidPolygon(const Polygone* p);
-
-// File operations for point b)
-extern int addPolygonesFromFile(const char* source_filename, const char* dest_filename);
-
-#endif // end of _TYPES_H_
+#endif // POLYGONE_H

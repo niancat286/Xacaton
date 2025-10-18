@@ -1,261 +1,164 @@
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <assert.h>
-#include <stdio.h>
+#include <stdbool.h>
 
 #include "Polygone.h"
 #include "file_forming.h"
 #include "vectors.h"
 
-#define LEN 30
+#define MAX_POLYGONS 100000
 
-// Helper function for polygon validation
+int writePolygone(FILE* fp, Polygone* p) {
+    if (!fp || !p) return FALSE;
+    if (fprintf(fp, "%u", (unsigned)p->n) < 0) return FALSE;
+    for (int i = 0; i < p->n; ++i) {
+        if (fprintf(fp, " %.6f %.6f", p->vertice[i].x, p->vertice[i].y) < 0) return FALSE;
+    }
+    if (fprintf(fp, "\n") < 0) return FALSE;
+    return TRUE;
+}
+
+int readPolygoneFromText(FILE* fp, Polygone* p) {
+    if (!fp || !p) return FALSE;
+    unsigned n;
+    if (fscanf(fp, "%u", &n) != 1) return FALSE;
+    if (n < 3) return FALSE;
+    p->n = (NTYPE)n;
+    p->vertice = (TPoint*)malloc(p->n * sizeof(TPoint));
+    if (!p->vertice) return FALSE;
+    for (unsigned i = 0; i < n; ++i) {
+        if (fscanf(fp, "%f %f", &p->vertice[i].x, &p->vertice[i].y) != 2) {
+            free(p->vertice);
+            p->vertice = NULL;
+            p->n = 0;
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+/* Read all polygons stored in a text file.
+   Returns dynamically allocated array of Polygone with an extra sentinel
+   element (arr[count].n == 0). Caller must free each polygon via
+   freePolygone(&arr[i]) then free(arr). */
+Polygone* readPolygones(FILE* fp) {
+    if (!fp) return NULL;
+    rewind(fp);
+    unsigned count;
+    if (fscanf(fp, "%u", &count) != 1) return NULL;
+    Polygone* arr = (Polygone*)malloc((count + 1) * sizeof(Polygone));
+    if (!arr) return NULL;
+    for (unsigned i = 0; i < count; ++i) {
+        arr[i].n = 0;
+        arr[i].vertice = NULL;
+        if (!readPolygoneFromText(fp, &arr[i])) {
+            for (unsigned j = 0; j < i; ++j) freePolygone(&arr[j]);
+            free(arr);
+            return NULL;
+        }
+    }
+    arr[count].n = 0;
+    arr[count].vertice = NULL;
+    return arr;
+}
+
+/* Input polygon from file or console.
+   If fp != NULL -> read from file; otherwise read from console using scanf_s.
+   Validate polygon via isValidPolygon before returning TRUE. */
+int inputPolygone(FILE* fp, Polygone* p) {
+    if (!p) return FALSE;
+    unsigned n;
+    if (fp) {
+        if (fscanf(fp, "%u", &n) != 1) return FALSE;
+    } else {
+        printf("Enter number of polygon vertices: ");
+        if (scanf_s("%u", &n) != 1) {
+            int ch; while ((ch = getchar()) != '\n' && ch != EOF) {}
+            return FALSE;
+        }
+    }
+    if (n < 3) {
+        if (!fp) printf("Error: number of vertices must be >= 3\n");
+        return FALSE;
+    }
+    p->n = (NTYPE)n;
+    p->vertice = (TPoint*)malloc(p->n * sizeof(TPoint));
+    if (!p->vertice) return FALSE;
+    for (unsigned i = 0; i < n; ++i) {
+        if (fp) {
+            if (fscanf(fp, "%f %f", &p->vertice[i].x, &p->vertice[i].y) != 2) {
+                free(p->vertice);
+                p->vertice = NULL;
+                p->n = 0;
+                return FALSE;
+            }
+        } else {
+            printf("Enter coordinates for vertex %u (x y): ", i + 1);
+            if (scanf_s("%f %f", &p->vertice[i].x, &p->vertice[i].y) != 2) {
+                int ch; while ((ch = getchar()) != '\n' && ch != EOF) {}
+                free(p->vertice);
+                p->vertice = NULL;
+                p->n = 0;
+                return FALSE;
+            }
+        }
+    }
+    if (!isValidPolygon(p)) {
+        if (!fp) printf("Error: polygon is invalid (duplicate points or self-intersection)\n");
+        free(p->vertice);
+        p->vertice = NULL;
+        p->n = 0;
+        return FALSE;
+    }
+    return TRUE;
+}
+
+static int segmentsIntersect(const TPoint a1, const TPoint a2, const TPoint b1, const TPoint b2) {
+    PTYPE x1 = a2.x - a1.x, y1 = a2.y - a1.y;
+    PTYPE x2 = b1.x - a1.x, y2 = b1.y - a1.y;
+    PTYPE x3 = b2.x - a1.x, y3 = b2.y - a1.y;
+    PTYPE d1 = x1 * y2 - y1 * x2;
+    PTYPE d2 = x1 * y3 - y1 * x3;
+    x1 = b2.x - b1.x; y1 = b2.y - b1.y;
+    x2 = a1.x - b1.x; y2 = a1.y - b1.y;
+    x3 = a2.x - b1.x; y3 = a2.y - b1.y;
+    PTYPE d3 = x1 * y2 - y1 * x2;
+    PTYPE d4 = x1 * y3 - y1 * x3;
+    return (d1 * d2 < 0) && (d3 * d4 < 0);
+}
+
 int isValidPolygon(const Polygone* p) {
+    if (!p) return FALSE;
     if (p->n < 3) return FALSE;
-
-    // Check for duplicate points
-    for (int i = 0; i < p->n; i++) {
-        for (int j = i + 1; j < p->n; j++) {
+    for (int i = 0; i < p->n; ++i) {
+        for (int j = i + 1; j < p->n; ++j) {
             if (isEqual(p->vertice[i].x, p->vertice[j].x) &&
                 isEqual(p->vertice[i].y, p->vertice[j].y)) {
                 return FALSE;
             }
         }
     }
-
+    for (int i = 0; i < p->n; ++i) {
+        TPoint a1 = p->vertice[i];
+        TPoint a2 = p->vertice[(i + 1) % p->n];
+        for (int j = i + 1; j < p->n; ++j) {
+            int nextj = (j + 1) % p->n;
+            if (nextj == i) continue;
+            if (i == 0 && nextj == 0) continue;
+            TPoint b1 = p->vertice[j];
+            TPoint b2 = p->vertice[nextj];
+            if (segmentsIntersect(a1, a2, b1, b2)) return FALSE;
+        }
+    }
     return TRUE;
 }
 
-int inputPolygone(FILE* fp, Polygone* p) {
-    NTYPE n;
-
-    if (fp) {
-        if (fscanf(fp, "%u", &n) != 1) {
-            return FALSE;
-        }
-    }
-    else {
-        printf("Enter number of polygon vertices: ");
-        if (scanf("%u", &n) != 1) {
-            return FALSE;
-        }
-    }
-
-    if (n < 3) {
-        printf("Error: number of vertices must be >= 3\n");
-        return FALSE;
-    }
-
-    p->n = n;
-    p->vertice = (TPoint*)malloc(n * sizeof(TPoint));
-    if (!p->vertice) {
-        printf("Memory allocation error\n");
-        return FALSE;
-    }
-
-    // Input vertex coordinates
-    for (int i = 0; i < n; i++) {
-        if (fp) {
-            if (fscanf(fp, "%f %f", &p->vertice[i].x, &p->vertice[i].y) != 2) {
-                printf("Error reading coordinates for vertex %d\n", i);
-                free(p->vertice);
-                return FALSE;
-            }
-        }
-        else {
-            printf("Enter coordinates for vertex %d (x y): ", i + 1);
-            if (scanf("%f %f", &p->vertice[i].x, &p->vertice[i].y) != 2) {
-                printf("Error inputting coordinates for vertex %d\n", i);
-                free(p->vertice);
-                return FALSE;
-            }
-        }
-    }
-
-    // Validate polygon
-    if (!isValidPolygon(p)) {
-        printf("Error: polygon is invalid (possibly duplicate points)\n");
-        free(p->vertice);
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-int addPolygonesFromFile(const char* source_filename, const char* dest_filename) {
-    FILE* source = fopen(source_filename, "r");
-    if (!source) {
-        printf("Error: cannot open source file %s\n", source_filename);
-        return FALSE;
-    }
-
-    FILE* dest = fopen(dest_filename, "a+");
-    if (!dest) {
-        printf("Error: cannot open destination file %s\n", dest_filename);
-        fclose(source);
-        return FALSE;
-    }
-
-    // Read polygon count from source
-    unsigned int source_count;
-    if (fscanf(source, "%u", &source_count) != 1) {
-        printf("Error: invalid source file format\n");
-        fclose(source);
-        fclose(dest);
-        return FALSE;
-    }
-
-    // Read current polygon count from dest
-    unsigned int dest_count = 0;
-    rewind(dest);
-    if (fscanf(dest, "%u", &dest_count) != 1) {
-        dest_count = 0;
-    }
-
-    // Add each polygon
-    int added_count = 0;
-    for (unsigned int i = 0; i < source_count; i++) {
-        Polygone poly;
-        if (!inputPolygone(source, &poly)) {
-            printf("Warning: skipped invalid polygon %d\n", i);
-            continue;
-        }
-
-        // Write to destination file
-        if (writePolygone(dest, &poly)) {
-            added_count++;
-            printf("Added polygon %d with %d vertices\n", i, poly.n);
-        }
-        else {
-            printf("Error writing polygon %d\n", i);
-        }
-        freePolygone(&poly);
-    }
-
-    // Update total count in destination file
-    if (added_count > 0) {
-        rewind(dest);
-        fprintf(dest, "%u", dest_count + added_count);
-        printf("Successfully added %d polygons from file %s\n", added_count, source_filename);
-    }
-
-    fclose(source);
-    fclose(dest);
-    return added_count;
-}
-
-// File operations
-int writePolygone_binary(FILE* fp, Polygone* p) {
-    assert(fp != 0);
-    assert(p != 0);
-    int size = fwrite(&p->n, sizeof(NTYPE), 1, fp);
-    if (size != 1) return 0;
-    for (int i = 0; i < p->n; i++) {
-        int size1 = fwrite(&p->vertice[i].x, sizeof(PTYPE), 1, fp);
-        int size2 = fwrite(&p->vertice[i].y, sizeof(PTYPE), 1, fp);
-        if (size1 != 1 || size2 != 1) return 0;
-    }
-    return 1;
-}
-
-// Text file polygon writing
-int writePolygone(FILE* fp, Polygone* p) {
-    assert(fp != 0);
-    assert(p != 0);
-
-    // Write vertex count
-    if (fprintf(fp, "\n%u", p->n) < 0) {
-        return FALSE;
-    }
-
-    // Write vertex coordinates
-    for (int i = 0; i < p->n; i++) {
-        if (fprintf(fp, " %.6f %.6f", p->vertice[i].x, p->vertice[i].y) < 0) {
-            return FALSE;
-        }
-    }
-
-    return TRUE;
-}
-
-// Read polygon from text file
-int readPolygoneFromText(FILE* fp, Polygone* p) {
-    if (!fp || !p) return FALSE;
-
-    if (fscanf(fp, "%u", &p->n) != 1) {
-        return FALSE;
-    }
-
-    if (p->n < 3) return FALSE;
-
-    p->vertice = (TPoint*)malloc(p->n * sizeof(TPoint));
-    if (!p->vertice) return FALSE;
-
-    for (int i = 0; i < p->n; i++) {
-        if (fscanf(fp, "%f %f", &p->vertice[i].x, &p->vertice[i].y) != 2) {
-            free(p->vertice);
-            p->vertice = NULL;
-            return FALSE;
-        }
-    }
-
-    return TRUE;
-}
-
-// Output polygon function
-void outputPolygone(const Polygone* p, FILE* fp) {
-    if (!p) return;
-
-    if (fp == NULL) {
-        // Output to console
-        printf("Polygon with %u vertices: ", p->n);
-        for (int i = 0; i < p->n; i++) {
-            printf("(%.2f, %.2f) ", p->vertice[i].x, p->vertice[i].y);
-        }
-        printf("\n");
-    }
-    else {
-        // Output to file
-        fprintf(fp, "Polygon with %u vertices: ", p->n);
-        for (int i = 0; i < p->n; i++) {
-            fprintf(fp, "(%.2f, %.2f) ", p->vertice[i].x, p->vertice[i].y);
-        }
-        fprintf(fp, "\n");
-    }
-}
-
-// Output functions
-void showPolygoneFile(FILE* fp, NTYPE k) {
-    // Simplified implementation - show all polygons
-    showPolygonesFile(fp);
-}
-
-void showPolygonesFile(FILE* fp) {
-    if (!fp) return;
-
-    rewind(fp);
-    unsigned int count;
-    if (fscanf(fp, "%u", &count) != 1) return;
-
-    for (unsigned int i = 0; i < count; i++) {
-        Polygone p;
-        if (readPolygoneFromText(fp, &p)) {
-            outputPolygon(p);
-            freePolygone(&p);
-        }
-    }
-}
-
-// Geometric functions
-PTYPE area(TPoint p1, TPoint p2, TPoint p3) {
-    TVECT v1 = setVector(p2, p1);
-    TVECT v2 = setVector(p2, p3);
-    PTYPE par_area = lengthVector(vectorMultVector(v1, v2));
-    return par_area / 2.0;
-}
-
+// Menory cleanup
 int freePolygone(Polygone* p) {
+    if (!p) return 0;
     if (p->vertice) {
         free(p->vertice);
         p->vertice = NULL;
@@ -264,159 +167,182 @@ int freePolygone(Polygone* p) {
     return 0;
 }
 
+// Geometry functions
 PTYPE area_polygon(Polygone p) {
-    if (p.n < 3) return 0.0;
-
-    PTYPE total_area = 0.0;
-    for (int i = 0; i < p.n; i++) {
-        TPoint current = p.vertice[i];
-        TPoint next = p.vertice[(i + 1) % p.n];
-        total_area += (current.x * next.y - next.x * current.y);
+    if (p.n < 3) return 0.0f;
+    PTYPE sum = 0.0f;
+    for (int i = 0; i < p.n; ++i) {
+        int j = (i + 1) % p.n;
+        sum += p.vertice[i].x * p.vertice[j].y - p.vertice[j].x * p.vertice[i].y;
     }
-    return fabs(total_area) / 2.0;
-}
-
-NTYPE inPolygon(Polygone p, TPoint point) {
-    NTYPE power = p.n;
-    PTYPE res = 0;
-    for (int i = 0; i < power - 1; i++) {
-        res += area(p.vertice[i], point, p.vertice[i + 1]);
-    }
-    res += area(p.vertice[0], point, p.vertice[power - 1]);
-    if (isEqual(area_polygon(p), res)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-// Polygone file operations
-NTYPE pointsPolygones(FILE* fp, TPoint point) {
-    assert(fp != 0);
-    int res = 0;
-    unsigned int M;
-
-    rewind(fp);
-    if (fscanf(fp, "%u", &M) != 1) return 0;
-
-    for (int i = 0; i < M; i++) {
-        Polygone p;
-        if (readPolygoneFromText(fp, &p)) {
-            if (inPolygon(p, point)) {
-                res++;
-            }
-            freePolygone(&p);
-        }
-    }
-    return res;
-}
-
-int minAreaPolygone(FILE* fp, Polygone* p) {
-    assert(fp != NULL);
-    Polygone temp;
-    PTYPE min_area = 0;
-    int found = FALSE;
-    unsigned int M;
-
-    rewind(fp);
-    if (fscanf(fp, "%u", &M) != 1) return FALSE;
-
-    for (int i = 0; i < M; i++) {
-        if (!readPolygoneFromText(fp, &temp)) continue;
-
-        PTYPE area_val = area_polygon(temp);
-        if (!found || area_val < min_area) {
-            min_area = area_val;
-            found = TRUE;
-            if (p->vertice) {
-                free(p->vertice);
-            }
-            p->n = temp.n;
-            p->vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
-            for (int j = 0; j < temp.n; j++) {
-                p->vertice[j].x = temp.vertice[j].x;
-                p->vertice[j].y = temp.vertice[j].y;
-            }
-        }
-        freePolygone(&temp);
-    }
-    return found;
-}
-
-int isConvexPolygone(const Polygone* p) {
-    if (p->n < 3) return FALSE;
-    int sign = 0;
-    for (int i = 0; i < p->n; i++) {
-        TPoint p1 = p->vertice[i];
-        TPoint p2 = p->vertice[(i + 1) % p->n];
-        TPoint p3 = p->vertice[(i + 2) % p->n];
-
-        TVECT v1 = setVector(p1, p2);
-        TVECT v2 = setVector(p2, p3);
-        TVECT cross = vectorMultVector(v1, v2);
-        PTYPE cross_product_z = cross.z;
-
-        if (cross_product_z != 0) {
-            int current_sign = (cross_product_z > 0) ? 1 : -1;
-            if (sign == 0) {
-                sign = current_sign;
-            }
-            else if (sign != current_sign) {
-                return FALSE;
-            }
-        }
-    }
-    return TRUE;
-}
-
-NTYPE numberConvexPolygones(FILE* fp) {
-    assert(fp != NULL);
-    unsigned int M;
-    int count = 0;
-
-    rewind(fp);
-    if (fscanf(fp, "%u", &M) != 1) return 0;
-
-    for (int i = 0; i < M; i++) {
-        Polygone p;
-        if (readPolygoneFromText(fp, &p)) {
-            if (isConvexPolygone(&p)) {
-                count++;
-            }
-            freePolygone(&p);
-        }
-    }
-    return count;
-}
-
-// Additional geometric functions
-int isEqualPolygone(const Polygone* p1, const Polygone* p2) {
-    if (p1->n != p2->n) return FALSE;
-
-    for (int i = 0; i < p1->n; i++) {
-        if (!isEqual(p1->vertice[i].x, p2->vertice[i].x) ||
-            !isEqual(p1->vertice[i].y, p2->vertice[i].y)) {
-            return FALSE;
-        }
-    }
-    return TRUE;
+    return fabsf(sum) / 2.0f;
 }
 
 PTYPE perimeterPolygone(const Polygone* p) {
-    if (p->n < 2) return 0.0;
-
-    PTYPE perimeter = 0.0;
-    for (int i = 0; i < p->n; i++) {
-        TPoint current = p->vertice[i];
-        TPoint next = p->vertice[(i + 1) % p->n];
-        TVECT side = setVector(current, next);
-        perimeter += lengthVector(side);
+    if (!p || p->n < 2) return 0.0f;
+    PTYPE per = 0.0f;
+    for (int i = 0; i < p->n; ++i) {
+        int j = (i + 1) % p->n;
+        TVECT v = setVector(p->vertice[i], p->vertice[j]);
+        per += lengthVector(v);
     }
-    return perimeter;
+    return per;
 }
 
-// Simple output function for file_forming.c compatibility
-void outputPolygon(Polygone p) {
-    outputPolygone(&p, NULL);
+int pointsPolygoneInside(const Polygone* p, TPoint p0) {
+    if (!p) return FALSE;
+    int inside = 0;
+    for (int i = 0, j = p->n - 1; i < p->n; j = i++) {
+        PTYPE xi = p->vertice[i].x, yi = p->vertice[i].y;
+        PTYPE xj = p->vertice[j].x, yj = p->vertice[j].y;
+        int intersect = ((yi > p0.y) != (yj > p0.y)) &&
+                        (p0.x < (xj - xi) * (p0.y - yi) / (yj - yi + 1e-12f) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside ? TRUE : FALSE;
+}
+
+int isConvexPolygone(const Polygone* p) {
+    if (!p || p->n < 3) return FALSE;
+    int sign = 0;
+    for (int i = 0; i < p->n; ++i) {
+        TPoint a = p->vertice[i];
+        TPoint b = p->vertice[(i + 1) % p->n];
+        TPoint c = p->vertice[(i + 2) % p->n];
+        TVECT v1 = setVector(a, b);
+        TVECT v2 = setVector(b, c);
+        TVECT cross = vectorMultVector(v1, v2);
+        PTYPE z = cross.z;
+        if (!isEqual(z, 0.0f)) {
+            int s = (z > 0.0f) ? 1 : -1;
+            if (sign == 0) sign = s;
+            else if (sign != s) return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+/* Polygon equality with rotation and reversal */
+int isEqualPolygone(const Polygone* p1, const Polygone* p2) {
+    if (!p1 || !p2) return FALSE;
+    if (p1->n != p2->n) return FALSE;
+    int n = p1->n;
+    for (int off = 0; off < n; ++off) {
+        int ok = 1;
+        for (int i = 0; i < n; ++i) {
+            int idx = (off + i) % n;
+            if (!isEqual(p1->vertice[idx].x, p2->vertice[i].x) ||
+                !isEqual(p1->vertice[idx].y, p2->vertice[i].y)) { ok = 0; break; }
+        }
+        if (ok) return TRUE;
+    }
+    for (int off = 0; off < n; ++off) {
+        int ok = 1;
+        for (int i = 0; i < n; ++i) {
+            int idx = (off + i) % n;
+            int ridx = (n - i - 1) % n;
+            if (!isEqual(p1->vertice[idx].x, p2->vertice[ridx].x) ||
+                !isEqual(p1->vertice[idx].y, p2->vertice[ridx].y)) { ok = 0; break; }
+        }
+        if (ok) return TRUE;
+    }
+    return FALSE;
+}
+
+/* File operations: add from source to dest (skip duplicates),
+   add single polygon from console to dest (skip duplicates) */
+int addPolygonesFromFile(const char* source_filename, const char* dest_filename) {
+    if (!source_filename || !dest_filename) return 0;
+    FILE* src = fopen(source_filename, "r");
+    if (!src) return 0;
+    FILE* dst = fopen(dest_filename, "r+");
+    if (!dst) {
+        dst = fopen(dest_filename, "w+");
+        if (!dst) { fclose(src); return 0; }
+        fprintf(dst, "0\n");
+        fflush(dst);
+    }
+    unsigned src_count = 0;
+    if (fscanf(src, "%u", &src_count) != 1) { fclose(src); fclose(dst); return 0; }
+    rewind(dst);
+    unsigned dst_count = 0;
+    if (fscanf(dst, "%u", &dst_count) != 1) dst_count = 0;
+    Polygone* existing = readPolygones(dst);
+    if (!existing && dst_count > 0) { fclose(src); fclose(dst); return 0; }
+    unsigned added = 0;
+    fseek(dst, 0, SEEK_END);
+    for (unsigned i = 0; i < src_count; ++i) {
+        Polygone poly; poly.n = 0; poly.vertice = NULL;
+        if (!readPolygoneFromText(src, &poly)) { continue; }
+        if (!isValidPolygon(&poly)) { freePolygone(&poly); continue; }
+        bool dup = false;
+        for (unsigned j = 0; j < dst_count; ++j) {
+            if (isEqualPolygone(&existing[j], &poly)) { dup = true; break; }
+        }
+        if (!dup) {
+            if (writePolygone(dst, &poly)) added++;
+        }
+        freePolygone(&poly);
+    }
+    rewind(dst);
+    fprintf(dst, "%u\n", dst_count + added);
+    if (existing) {
+        for (unsigned i = 0; i < dst_count; ++i) freePolygone(&existing[i]);
+        free(existing);
+    }
+    fclose(src);
+    fclose(dst);
+    return (int)added;
+}
+
+int addSinglePolygonFromConsole(const char* dest_filename) {
+    if (!dest_filename) return 0;
+    Polygone newp; newp.n = 0; newp.vertice = NULL;
+    if (!inputPolygone(NULL, &newp)) return 0;
+    FILE* dst = fopen(dest_filename, "r+");
+    if (!dst) {
+        dst = fopen(dest_filename, "w+");
+        if (!dst) { freePolygone(&newp); return 0; }
+        fprintf(dst, "0\n");
+        fflush(dst);
+    }
+    unsigned dst_count = 0;
+    if (fscanf(dst, "%u", &dst_count) != 1) dst_count = 0;
+    Polygone* existing = readPolygones(dst);
+    if (!existing && dst_count > 0) { fclose(dst); freePolygone(&newp); return 0; }
+    for (unsigned i = 0; i < dst_count; ++i) {
+        if (isEqualPolygone(&existing[i], &newp)) {
+            for (unsigned j = 0; j < dst_count; ++j) freePolygone(&existing[j]);
+            free(existing);
+            fclose(dst);
+            freePolygone(&newp);
+            return 0;
+        }
+    }
+    fseek(dst, 0, SEEK_END);
+    writePolygone(dst, &newp);
+    rewind(dst);
+    fprintf(dst, "%u\n", dst_count + 1);
+    for (unsigned j = 0; j < dst_count; ++j) freePolygone(&existing[j]);
+    free(existing);
+    fclose(dst);
+    freePolygone(&newp);
+    return 1;
+}
+
+void outputPolygone(const Polygone* p, FILE* fp) {
+    if (!p) return;
+    if (!fp) {
+        printf("Vertices: %u, Points: ", (unsigned)p->n);
+        for (int i = 0; i < p->n; ++i) {
+            printf("(%.2f, %.2f) ", p->vertice[i].x, p->vertice[i].y);
+        }
+        printf("\n");
+    } else {
+        fprintf(fp, "Vertices: %u, Points: ", (unsigned)p->n);
+        for (int i = 0; i < p->n; ++i) {
+            fprintf(fp, "(%.2f, %.2f) ", p->vertice[i].x, p->vertice[i].y);
+        }
+        fprintf(fp, "\n");
+    }
 }
