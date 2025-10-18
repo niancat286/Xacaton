@@ -1,445 +1,97 @@
-#include "testsPolygone.h"
-#include "Polygone.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
+#include "Polygone.h"
+#include <math.h>
+#include "testsPolygone.h"
 
+static int test_count = 0;
+static int passed_count = 0;
 
-/*
-int test_isEqual() {
-    PTYPE a = 5.f, b = 7.f, c = 5.f;
-    if (!isEqual(a, b) && isEqual(a, c)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_isEqual2() {
-    TVECT v1 = {1.f, 2.f, 3.f};
-    TVECT v2 = {1.f, 2.f, 3.f};
-    TVECT v3 = {0.f, 2.f, 3.f};
-    if (isEqual2(v1, v2) && !isEqual2(v1, v3)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_setVector() {
-    TPoint p1 = {0.f, 0.f};
-    TPoint p2 = {1.f, 1.f};
-    TVECT v1 = {1.f, 1.f, 0.f};
-    TVECT v2 = setVector(p1, p2);
-    if (isEqual2(v1, v2)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_lengthVector() {
-    TVECT v = {3.f, 4.f, 0.f};
-    if (isEqual(lengthVector(v), 5)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_addVector() {
-    TVECT v1 = {3.f, 4.f, 0.f};
-    TVECT v2 = {-3.f, -4.f, 0.f};
-    TVECT v3 = {0.f, 0.f, 0.f};
-    if (isEqual2(addVector(v1, v2), v3)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_multVector() {
-    TVECT v1 = {3.f, 4.f, 0.f};
-    TVECT v2 = {0.f, 0.f, 0.f};
-    PTYPE a = 0;
-    if (isEqual2(multVector(a, v1), v2)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_subVector() {
-    TVECT v1 = {3.f, 4.f, 0.f};
-    TVECT v2 = {3.f, 4.f, 0.f};
-    TVECT v3 = {0.f, 0.f, 0.f};
-    if (isEqual2(subVector(v1, v2), v3)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_scalarMultVector() {
-    TVECT v1 = {0.f, 0.f, 0.f};
-    TVECT v2 = {3.f, 4.f, 0.f};
-    if (isEqual(lengthVector(v1), 0) && isEqual(lengthVector(v2), 5)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_vectorMultVector() {
-    TVECT v11 = {1.f, 0.f, 0.f};
-    TVECT v21 = {0.f, 1.f, 0.f};
-    TVECT v31 = {0.f, 0.f, 1.f};
-    TVECT v12 = {1.f, 2.f, 3.f};
-    TVECT v22 = {-1.f, -5.f, -10.f};
-    TVECT v32 = {-5.f, 7.f, -3.f};
-
-    if (isEqual2(vectorMultVector(v11, v21), v31) && isEqual2(vectorMultVector(v12, v22), v32)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_area() {
-    TPoint p1 = {0.f, 0.f};
-    TPoint p2 = {3.f, 0.f};
-    TPoint p3 = {0.f, 4.f};
-    if (isEqual(area(p1, p2, p3), 6.f)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_area_polygon() {
-    NTYPE n = 4;
-    TPoint p0 = {0.f, 0.f};
-    TPoint p1 = {0.f, 4.f};
-    TPoint p2 = {4.f, 0.f};
-    TPoint p3 = {4.f, 4.f};
-    TPoint vertices[] = {p0, p1, p2, p3};
-    Polygone p = {n, vertices};
-    if(isEqual(area_polygon(p), 16)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-int test_inPolygon() {
-    NTYPE n = 4;
-    TPoint p0 = {0.f, 0.f};
-    TPoint p1 = {4.f, 0.f};
-    TPoint p2 = {4.f, 4.f};
-    TPoint p3 = {0.f, 4.f};
-    TPoint vertices[] = {p0, p1, p2, p3};
-    Polygone p = {n, vertices};
-    TPoint test1 = {0.f, 0.f};
-    TPoint test2 = {2.f, 2.f};
-    TPoint test3 = {-1.f, -2.f};
-    if (inPolygon(p, test1) && inPolygon(p, test2) && !inPolygon(p, test3)) {
-        return TRUE;
-    }
-    else {
-        return FALSE;
-    }
-}
-
-NTYPE test_pointsPolygones() {
-    FILE* fp1 = fopen("polygones.txt", "r");
-
-    TPoint check1 = {5.f, 7.f};
-    NTYPE expected1 = 0;
-    NTYPE got1 = pointsPolygones(fp1, check1);
-    fclose(fp1);
-
-    FILE* fp2 = fopen("polygones.txt", "r");
-    TPoint check2 = {3.01, 3.01};
-    NTYPE expected2 = 2;
-    NTYPE got2 = pointsPolygones(fp2, check2);
-    fclose(fp2);
-
-    FILE* fp3 = fopen("polygones.txt", "r");
-    TPoint check3 = {-2.5, 8.f};
-    NTYPE expected3 = 1;
-    NTYPE got3 = pointsPolygones(fp3, check3);
-    fclose(fp3);
-
-    return expected1 == got1 && expected2 == got2 &&  expected3 == got3;
-}
-
-int test_isConvexPolygone_convex(){
-    NTYPE n = 4;
-    TPoint p0 = {0.f, 0.f};
-    TPoint p1 = {4.f, 0.f};
-    TPoint p2 = {4.f, 4.f};
-    TPoint p3 = {0.f, 4.f};
-    TPoint vertices[] = {p0, p1, p2, p3};
-    Polygone p = {n, vertices};
-    return isConvexPolygone(&p) == TRUE;
-}
-
-int test_isConvexPolygone_nonConvex(){
-    NTYPE n = 5;
-    TPoint p0 = {0.f, 0.f};
-    TPoint p1 = {4.f, 0.f};
-    TPoint p2 = {2.f, 1.f};  // Точка, що робить многокутник неопуклим
-    TPoint p3 = {4.f, 4.f};
-    TPoint p4 = {0.f, 4.f};
-    TPoint vertices[] = {p0, p1, p2, p3, p4};
-    Polygone p = {n, vertices};
-    return isConvexPolygone(&p) == FALSE;
-}
-
-int test_isConvexPolygone_triangle(){
-    NTYPE n = 3;
-    TPoint p0 = {0.f, 0.f};
-    TPoint p1 = {4.f, 0.f};
-    TPoint p2 = {2.f, 3.f};
-    TPoint vertices[] = {p0, p1, p2};
-    Polygone p = {n, vertices};
-    return isConvexPolygone(&p) == TRUE;
-}
-
-int test_isConvexPolygone_invalid(){
-    NTYPE n = 2;
-    TPoint p0 = {0.f, 0.f};
-    TPoint p1 = {4.f, 0.f};
-    TPoint vertices[] = {p0, p1};
-    Polygone p = {n, vertices};
-    return isConvexPolygone(&p) == FALSE;  // Менше ніж 3 вершини
-}
-
-int test_minAreaPolygone() {
-    const char* filename = "file_test_minAreaPolygone";
-    FILE* fp = fopen(filename, "rb");
-    if(fp != NULL) return FALSE;
-    Polygone minPolygone = {0, NULL};
-    int found = minAreaPolygone(fp, &minPolygone);
-    fclose(fp);
-    if (found && minPolygone.n == 3 &&
-        minPolygone.vertice[0].x == 0 && minPolygone.vertice[0].y == 0 &&
-        minPolygone.vertice[1].x == 2 && minPolygone.vertice[1].y == 0 &&
-        minPolygone.vertice[2].x == 0 && minPolygone.vertice[2].y == 2) {
-        free(minPolygone.vertice);
-        return TRUE;
+static void check(const char* test_name, int condition) {
+    test_count++;
+    if (condition) {
+        passed_count++;
+        printf("[ OK ] %s\n", test_name);
     } else {
-        if (minPolygone.vertice) {
-            free(minPolygone.vertice);
-        }
-        return FALSE;
+        printf("[FAIL] %s\n", test_name);
     }
 }
 
-int test_numberConvexPolygones() {
-    FILE* fp = fopen("file_test_for_numberConvexPolygones", "rb");
-    if(fp != NULL) return FALSE;
-    int convexCount = numberConvexPolygones(fp);
+
+static void test_geometry() {
+    printf("\n--- Testing Geometry ---\n");
+    TPoint v1[] = {{0,0}, {5,0}, {5,5}, {0,5}};
+    Polygone square = {4, v1};
+    check("Area of 5x5 square", fabsf(area_polygone(&square) - 25.0f) < 1e-6);
+    check("Perimeter of 5x5 square", fabsf(perimeter_polygone(&square) - 20.0f) < 1e-6);
+    check("Square is convex", is_convex(&square) == TRUE);
+
+    TPoint v2[] = {{0,0}, {4,0}, {2,2}, {4,4}, {0,4}};
+    Polygone arrow = {5, v2};
+    check("Arrow shape is not convex", is_convex(&arrow) == FALSE);
+
+    TPoint p_inside = {2, 2};
+    TPoint p_outside = {6, 6};
+    check("Point (2,2) is inside square", is_point_inside(&square, p_inside) == TRUE);
+    check("Point (6,6) is outside square", is_point_inside(&square, p_outside) == FALSE);
+}
+
+static void test_equality() {
+    printf("\n--- Testing Equality ---\n");
+    TPoint v1[] = {{0,0}, {1,0}, {1,1}, {0,1}};
+    Polygone p1 = {4, v1};
+
+    TPoint v2[] = {{1,0}, {1,1}, {0,1}, {0,0}}; // Same, shifted
+    Polygone p2 = {4, v2};
+
+    TPoint v3[] = {{0,0}, {0,1}, {1,1}, {1,0}}; // Same, reversed
+    Polygone p3 = {4, v3};
+
+    TPoint v4[] = {{0,0}, {2,0}, {2,2}, {0,2}}; // Different
+    Polygone p4 = {4, v4};
+
+    check("Equality with shifted vertices", isEqualPolygone(&p1, &p2) == TRUE);
+    check("Equality with reversed vertices", isEqualPolygone(&p1, &p3) == TRUE);
+    check("Inequality for different polygons", isEqualPolygone(&p1, &p4) == FALSE);
+}
+
+static void test_file_operations() {
+    printf("\n--- Testing File Operations ---\n");
+    const char* test_filename = "test_file.bin";
+
+    FILE* fp = fopen(test_filename, "wb");
+    NTYPE count = 2;
+    fwrite(&count, sizeof(NTYPE), 1, fp);
+    TPoint v1[] = {{0,0}, {1,0}, {0,1}};
+    Polygone p1 = {3, v1};
+    fwrite(&p1.n, sizeof(NTYPE), 1, fp);
+    fwrite(p1.vertice, sizeof(TPoint), p1.n, fp);
+    TPoint v2[] = {{0,0}, {2,0}, {2,2}, {0,2}};
+    Polygone p2 = {4, v2};
+    fwrite(&p2.n, sizeof(NTYPE), 1, fp);
+    fwrite(p2.vertice, sizeof(TPoint), p2.n, fp);
     fclose(fp);
-    return convexCount == 3 ? TRUE : FALSE;
+
+    check("is_present_in_file finds existing polygon", is_present_in_file(test_filename, &p1) == TRUE);
+    TPoint v3[] = {{9,9}};
+    Polygone p3 = {1, v3};
+    check("is_present_in_file doesn't find non-existing one", is_present_in_file(test_filename, &p3) == FALSE);
+
+    Polygone min_p = {0, NULL};
+    find_min_area_polygone(test_filename, &min_p);
+    check("find_min_area_polygone finds the correct polygon", isEqualPolygone(&min_p, &p1) == TRUE);
+    free_polygone(&min_p);
+
+    remove(test_filename);
 }
 
-int testShowPolygoneFile() {
-    FILE* fp = fopen("polygones.txt", "r");
-    showPolygonesFile(fp);
-    fclose(fp);
-    return 1;
-}
+void run_all_tests() {
+    test_geometry();
+    test_equality();
+    test_file_operations();
 
-int testInputPolygone(){
-    // Test 1 : cOnsole input
-    Polygone p0;
-    int r1 = inputPolygone(NULL, &p0);
-    if(r1!= TRUE) return FALSE;
-    freePolygone(&p0);
-    printf("first passed");
-
-    // Test 2 : file input
-    FILE* fp = fopen("1.txt","rt");
-    Polygone p;
-    int r2 = inputPolygone(fp, &p);
-    if(r2!= TRUE) return FALSE;
-
-    printf("second passed");
-    Polygone p2;
-    p2.n = 3;
-    p2.vertice = (TPoint*) calloc(6,sizeof(TPoint));
-    p2.vertice[0].x = 0;
-    p2.vertice[0].y = 0;
-
-    p2.vertice[1].x = 0;
-    p2.vertice[1].y = 1;
-
-    p2.vertice[2].x = 1;
-    p2.vertice[2].y = 0;
-
-    if(!isEqualPolygone(&p,&p2)) return FALSE;
-
-    freePolygone(&p);
-    freePolygone(&p2);
-
-    // Test 3 : file input - bad file
-    fp = fopen("xxx.txt","rt");
-    Polygone p3;
-    int r4 = inputPolygone(fp, &p3);
-    if(r4!= FALSE) return FALSE;
-
-    freePolygone(&p3);
-    printf("Input tests passed");
-
-    return TRUE;
-}
-
-*/
-
-int test_isEqualPolygone() {
-    struct Polygone p1;
-    struct Polygone p2;
-    struct Polygone p3;
-    int passed = 1;
-
-    // === Трикутник p1 ===
-    p1.n = 3;
-    p1.vertice = malloc(p1.n * sizeof(TPoint));
-    p1.vertice[0] = (TPoint){0, 0};
-    p1.vertice[1] = (TPoint){1, 0};
-    p1.vertice[2] = (TPoint){0, 1};
-
-    // === Такий самий трикутник p2 (інший порядок вершин — зсув циклу) ===
-    p2.n = 3;
-    p2.vertice = malloc(p2.n * sizeof(TPoint));
-    p2.vertice[0] = (TPoint){1, 0};
-    p2.vertice[1] = (TPoint){0, 1};
-    p2.vertice[2] = (TPoint){0, 0};
-
-    // === Інший полігон p3 ===
-    p3.n = 3;
-    p3.vertice = malloc(3 * sizeof(TPoint));
-    p3.vertice[0] = (TPoint){0, 0};
-    p3.vertice[1] = (TPoint){2, 0};
-    p3.vertice[2] = (TPoint){0, 2};
-
-    // Тест 1: однакові з різним початком
-    if (!isEqualPolygone(&p1, &p2)) {
-        printf("Test 1 failed: expected equal polygons\n");
-        passed = 0;
-    }
-
-    // Тест 2: різні координати
-    if (isEqualPolygone(&p1, &p3)) {
-        printf("Test 2 failed: expected not equal polygons\n");
-        passed = 0;
-    }
-
-    // Тест 3: перевірка зворотного порядку (reverse)
-    Polygone p4;
-    p4.n = 3;
-    p4.vertice = malloc(3 * sizeof(TPoint));
-    p4.vertice[0] = (TPoint){0, 0};
-    p4.vertice[1] = (TPoint){0, 1};
-    p4.vertice[2] = (TPoint){1, 0};
-
-    if (!isEqualPolygone(&p1, &p4)) {
-        printf("Test 3 failed: expected equal polygons (reverse order)\n");
-        passed = 0;
-    }
-
-    free(p1.vertice);
-    free(p2.vertice);
-    free(p3.vertice);
-    free(p4.vertice);
-
-    return passed;
-}
-
-
-int test_isPresentPolygone() {
-    int passed = 1;
-
-    FILE* fp = fopen("test_1.txt", "wb+");
-    if (!fp) {
-        printf("Cannot open file for test\n");
-        return 0;
-    }
-
-    unsigned int M = 2;
-    fwrite(&M, sizeof(unsigned int), 1, fp);
-
-    // === Полігон 1 ===
-    struct Polygone p1;
-    p1.n = 3;
-    p1.vertice = malloc(3 * sizeof(TPoint));
-    p1.vertice[0] = (TPoint){0, 0};
-    p1.vertice[1] = (TPoint){1, 0};
-    p1.vertice[2] = (TPoint){0, 1};
-
-    fwrite(&p1.n, sizeof(unsigned int), 1, fp);
-    for (unsigned int i = 0; i < p1.n; i++) {
-        fwrite(&p1.vertice[i].x, sizeof(PTYPE), 1, fp);
-        fwrite(&p1.vertice[i].y, sizeof(PTYPE), 1, fp);
-    }
-
-    // === Полігон 2 ===
-    struct Polygone p2;
-    p2.n = 4;
-    p2.vertice = malloc(4 * sizeof(TPoint));
-    p2.vertice[0] = (TPoint){0, 0};
-    p2.vertice[1] = (TPoint){1, 0};
-    p2.vertice[2] = (TPoint){1, 1};
-    p2.vertice[3] = (TPoint){0, 1};
-
-    fwrite(&p2.n, sizeof(unsigned int), 1, fp);
-    for (unsigned int i = 0; i < p2.n; i++) {
-        fwrite(&p2.vertice[i].x, sizeof(PTYPE), 1, fp);
-        fwrite(&p2.vertice[i].y, sizeof(PTYPE), 1, fp);
-    }
-
-    fflush(fp);
-
-    // === Тест 1: p1 повинен бути знайдений
-    if (!isPresentPolygone(fp, &p1)) {
-        printf("Test 1 failed: expected polygon p1 to be present\n");
-        passed = 0;
-    }
-
-    // === Тест 2: p2 повинен бути знайдений
-    if (!isPresentPolygone(fp, &p2)) {
-        printf("Test 2 failed: expected polygon p2 to be present\n");
-        passed = 0;
-    }
-
-    // === Тест 3: p3 не повинен бути знайдений
-    struct Polygone p3;
-    p3.n = 3;
-    p3.vertice = malloc(3 * sizeof(TPoint));
-    p3.vertice[0] = (TPoint){0, 0};
-    p3.vertice[1] = (TPoint){2, 0};
-    p3.vertice[2] = (TPoint){0, 2};
-
-    if (isPresentPolygone(fp, &p3)) {
-        printf("Test 3 failed: expected polygon p3 to be absent\n");
-        passed = 0;
-    }
-
-    free(p1.vertice);
-    free(p2.vertice);
-    free(p3.vertice);
-    fclose(fp);
-    remove("test_polygons.bin");
-
-    return passed;
+    printf("\n-----------------------------------\n");
+    printf("SUMMARY: %d out of %d tests passed.\n", passed_count, test_count);
+    printf("-----------------------------------\n");
 }

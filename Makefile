@@ -1,54 +1,67 @@
-all: clean RunTests.exe
+TARGET = RunTests
 
-RunTests.exe: Polygone.o testPolygone.o main.o vectors.o linerays.o
-	gcc -o RunTests.exe Polygone.o testPolygone.o main.o
+CC = gcc
+CFLAGS = -Wall -Wextra -g
 
-Polygone.o:
-	gcc Polygone.c Predicat.c -c
+OBJS = Polygone.o testsPolygone.o main.o vectors.o linerays.o Predicat.o
 
-testPolygone.o:
-	gcc testsPolygone.c Predicat.c -c
+.PHONY: all clean
 
-main.o:
-	gcc testsPolygone.c main.c -c  
+all: clean $(TARGET)
 
-linerays.o:
-	gcc linerays.c -c	
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
 
-vectors.o:
-	gcc vectors.c -c
+Polygone.o: Polygone.c
+	$(CC) $(CFLAGS) -c Polygone.c
+
+testsPolygone.o: testsPolygone.c
+	$(CC) $(CFLAGS) -c testsPolygone.c
+
+main.o: main.c
+	$(CC) $(CFLAGS) -c main.c
+
+linerays.o: linerays.c
+	$(CC) $(CFLAGS) -c linerays.c
+
+vectors.o: vectors.c
+	$(CC) $(CFLAGS) -c vectors.c
+
+Predicat.o: Predicat.c
+	$(CC) $(CFLAGS) -c Predicat.c
 
 clean:
-	rm -f *.o RunTests.exe 
+	rm -f *.o $(TARGET)
+
 
 
 
 
 # Для вінди друзякі собі
-# CC = gcc
+#CC = gcc
 
-# CFLAGS = -g -Wall -Wextra
-# LDFLAGS =
+#CFLAGS = -g -Wall -Wextra
+#LDFLAGS =
 
-# TARGET = RunTests.exe
-
-
-# SRCS = main.c Polygone.c testsPolygone.c Predicat.c vectors.c linerays.c
-
-# OBJS = $(SRCS:.c=.o)
-
-# all: $(TARGET)
-
-# $(TARGET): $(OBJS)
-# 	$(CC) $(LDFLAGS) -o $@ $^
-
-# %.o: %.c
-# 	$(CC) $(CFLAGS) -c $< -o $@
+#TARGET = RunTests.exe
 
 
-# clean:
-# ifeq ($(OS),Windows_NT)
-# 	-del /F /Q *.o $(TARGET) > nul 2>&1
-# else
-# 	-rm -f *.o $(TARGET)
-# endif
+#SRCS = main.c Polygone.c testsPolygone.c Predicat.c vectors.c linerays.c
+
+#OBJS = $(SRCS:.c=.o)
+
+#all: $(TARGET)
+
+#$(TARGET): $(OBJS)
+	#$(CC) $(LDFLAGS) -o $@ $^
+
+#%.o: %.c
+	#$(CC) $(CFLAGS) -c $< -o $@
+
+
+#clean:
+#ifeq ($(OS),Windows_NT)
+#	-del /F /Q *.o $(TARGET) > nul 2>&1
+#else
+#	-rm -f *.o $(TARGET)
+#endif
