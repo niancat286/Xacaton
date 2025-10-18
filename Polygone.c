@@ -373,3 +373,121 @@ int maxPerimeterPolygone(FILE* fp, Polygone* p) {
     }
     return found;
 }
+
+
+NTYPE conditionPolygones(FILE* fp, predicatPolygone Q, const char* fname) {
+    FILE* output = fopen(fname, "w"); // Text mode for ASCII output
+    if (!output) {
+        printf("Error: Cannot open output file %s\n", fname);
+        return 0;
+    }
+
+    // Write placeholder for count_written (padded to ensure fixed width)
+    NTYPE count_written = 0;
+    if (fprintf(output, "%-7u\n", count_written) < 0) {
+        printf("Error: Cannot write initial count to %s\n", fname);
+        fclose(output);
+        return 0;
+    }
+
+    int M;
+    if (fscanf(fp, "%d", &M) != 1 || M < 0 || M > 100000) {
+        printf("Error: Invalid number of polygons (M = %d)\n", M);
+        fclose(output);
+        return 0;
+    }
+    printf("Reading %d polygons\n", M);
+
+    TPoint* vertices = NULL;
+    NTYPE count_processed = 0;
+
+    for (NTYPE i = 0; i < M; i++) {
+        int N;
+        if (fscanf(fp, "%d", &N) != 1 || N < 3 || N > 1000000) {
+            printf("Error: Invalid number of vertices for polygon %u (N = %d)\n", i, N);
+            free(vertices);
+            fclose(output);
+            return count_processed;
+        }
+
+        // Allocate new memory for vertices
+        free(vertices); // Free previous allocation (if any)
+        vertices = malloc(N * sizeof(TPoint));
+        if (!vertices) {
+            printf("Error: Memory allocation failed for polygon %u\n", i);
+            fclose(output);
+            return count_processed;
+        }
+
+        // Read vertices
+        printf("Polygon %u: N = %d, vertices:", i, N);
+        for (NTYPE j = 0; j < N; j++) {
+            if (fscanf(fp, "%f %f", &vertices[j].x, &vertices[j].y) != 2) {
+                printf("\nError: Invalid vertex data for polygon %u, vertex %u\n", i, j);
+                free(vertices);
+                fclose(output);
+                return count_processed;
+            }
+            printf(" (%f,%f)", vertices[j].x, vertices[j].y);
+        }
+        printf("\n");
+
+        // Check if polygon satisfies the predicate
+        Polygone p = {N, vertices};
+        count_processed++;
+        if (Q(&p)) {
+            // Write polygon to output file
+            if (fprintf(output, "%u", N) < 0) {
+                printf("Error: Failed to write N for polygon %u to %s\n", i, fname);
+                free(vertices);
+                fclose(output);
+                return count_processed;
+            }
+            for (NTYPE j = 0; j < N; j++) {
+                if (fprintf(output, " %f %f", vertices[j].x, vertices[j].y) < 0) {
+                    printf("Error: Failed to write vertex %u for polygon %u to %s\n", j, i, fname);
+                    free(vertices);
+                    fclose(output);
+                    return count_processed;
+                }
+            }
+            if (fprintf(output, "\n") < 0) {
+                printf("Error: Failed to write newline for polygon %u to %s\n", i, fname);
+                free(vertices);
+                fclose(output);
+                return count_processed;
+            }
+
+            // Print to terminal
+            printf("Polygon %u is convex, written to %s: N = %u, vertices:", i, fname, N);
+            for (NTYPE j = 0; j < N; j++) {
+                printf(" (%f,%f)", vertices[j].x, vertices[j].y);
+            }
+            printf("\n");
+
+            count_written++;
+        }
+    }
+
+    // Update count_written at the start of the file
+    if (fseek(output, 0, SEEK_SET) != 0) {
+        printf("Error: Failed to seek to start of %s\n", fname);
+        free(vertices);
+        fclose(output);
+        return count_processed;
+    }
+    if (fprintf(output, "%-10u\n", count_written) < 0) {
+        printf("Error: Failed to update count in %s\n", fname);
+        free(vertices);
+        fclose(output);
+        return count_processed;
+    }
+
+    printf("Processed %u polygons, wrote %u convex polygons to %s\n", count_processed, count_written, fname);
+
+    free(vertices);
+    fclose(output);
+    return count_processed;
+}
+
+
