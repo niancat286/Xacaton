@@ -9,16 +9,18 @@
 
 static int read_one_polygone(FILE *fp, Polygone *p)
 {
-    if (fread(&p->n, sizeof(NTYPE), 1, fp) != 1)
+    if (fread(&p->n, sizeof(NTYPE), 1, fp) != 1 || p->n < 3)
         return FALSE;
     p->vertice = (TPoint *)malloc(p->n * sizeof(TPoint));
     if (!p->vertice)
         return FALSE;
     if (fread(p->vertice, sizeof(TPoint), p->n, fp) != p->n)
     {
+       printf("readone+"); 
         free(p->vertice);
         p->vertice = NULL;
         return FALSE;
+        printf("-\n");
     }
     return TRUE;
 }
@@ -37,6 +39,8 @@ static int read_one_polygone_from_text_file(FILE *fp, Polygone *p)
     if (fscanf(fp, "%u", &p->n) != 1) {
         return FALSE;
     }
+
+    if (p->n < 3) return FALSE;
     
     p->vertice = (TPoint *)malloc(p->n * sizeof(TPoint));
     if (!p->vertice) {
@@ -57,6 +61,7 @@ static int read_one_polygone_from_text_file(FILE *fp, Polygone *p)
 
 static int write_one_polygone_to_text_file(FILE *fp, const Polygone *p)
 {
+    
     if (fprintf(fp, "%u ", p->n) < 0) {
         return FALSE;
     }
@@ -89,6 +94,7 @@ void free_polygone(Polygone *p)
 // task а)
 void add_polygone_from_console(const char *filename)
 {
+
     Polygone p = {0, NULL};
     printf("Enter number of vertices N (>=3): ");
     if (scanf("%u", &p.n) != 1 || p.n < 3)
@@ -127,6 +133,10 @@ void add_polygone_from_console(const char *filename)
         return;
     }
 
+    if(is_present_in_file(filename, &p)){
+        free_polygone(&p); return;
+    }
+
     FILE *fp = fopen(filename, is_binary ? "r+b" : "r+");
     if (!fp) {
         fp = fopen(filename, is_binary ? "w+b" : "w+");
@@ -151,6 +161,7 @@ void add_polygone_from_console(const char *filename)
         fscanf(fp, "%u", &count);
     }
 
+    
     fseek(fp, 0, SEEK_END);
     if (is_binary) {
         write_one_polygone(fp, &p);
@@ -197,15 +208,15 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
         return;
     }
 
-    NTYPE src_count;
+    int src_count;
     if (src_is_binary) {
-        if (fread(&src_count, sizeof(NTYPE), 1, fp_src) != 1 || src_count == 0) {
+        if (fread(&src_count, sizeof(NTYPE), 1, fp_src) != 1 || src_count <= 0) {
             printf("Source file %s is empty or corrupted.\n", src_filename);
             fclose(fp_src);
             return;
         }
     } else {
-        if (fscanf(fp_src, "%u", &src_count) != 1 || src_count == 0) {
+        if (fscanf(fp_src, "%u", &src_count) != 1 || src_count <= 0) {
             printf("Source file %s is empty or corrupted.\n", src_filename);
             fclose(fp_src);
             return;
@@ -228,7 +239,7 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
         }
     }
 
-    NTYPE dest_count;
+    int dest_count;
     rewind(fp_dest);
     if (dest_is_binary) {
         fread(&dest_count, sizeof(NTYPE), 1, fp_dest) != 1;
@@ -238,10 +249,16 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
 
     // Move to end of destination file
     fseek(fp_dest, 0, SEEK_END);
-
+    int present = 0;
     for (NTYPE i = 0; i < src_count; i++) {
         Polygone p;
+        p.vertice = NULL;
         if (src_is_binary ? read_one_polygone(fp_src, &p) : read_one_polygone_from_text_file(fp_src, &p)) {
+            if(is_present_in_file(dest_filename, &p)){
+                present++;
+                free_polygone(&p);
+                continue;
+            }
             if (dest_is_binary) {
                 if (!write_one_polygone(fp_dest, &p)) {
                     printf("Error writing polygon to %s.\n", dest_filename);
@@ -262,7 +279,7 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
             free_polygone(&p);
         } else {
             printf("Error reading polygon from %s.\n", src_filename);
-            free_polygone(&p);
+free_polygone(&p);
             fclose(fp_src);
             fclose(fp_dest);
             return;
@@ -270,7 +287,7 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
     }
     fclose(fp_src);
 
-    NTYPE total_count = dest_count + src_count;
+    NTYPE total_count = dest_count + src_count - present;
     rewind(fp_dest);
     if (dest_is_binary) {
         fwrite(&total_count, sizeof(NTYPE), 1, fp_dest);
