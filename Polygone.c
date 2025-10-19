@@ -259,7 +259,7 @@ int is_valid(const char *filename){
 void append_polygons_from_file(const char *dest_filename, const char *src_filename)
 {
     
-    if(!is_valid(dest_filename)){
+    if(!is_valid(src_filename)){
         printf("%s is corrupted or contains invalid polygons.\n", src_filename);
         return;
     }
