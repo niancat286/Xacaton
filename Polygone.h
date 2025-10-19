@@ -1,80 +1,48 @@
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef _POLYGONE_H_
+#define _POLYGONE_H_
 
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include "Types.h"
 
-#include "Predicat.h"
+// task а)
+void add_polygone_from_console(const char *filename);
 
+// task б)
+void append_polygons_from_file(const char *dest_filename, const char *src_filename);
 
-// Tasks
-// Ввести багатокутник з консолі (якщо файлова змінна НУЛЛ) або з текстового файлу
-extern int inputPolygone(Polygone* p, FILE* fp, );
+// task в)
+void display_all_polygons(const char *filename);
 
-//Вивести батокутник в консоль (якщо файлова змінна НУЛЛ) або в текстовий файл
-extern void outputPolygone(const Polygone* p, FILE* fp);
+// task г)
+void display_polygone_by_index(const char *filename, NTYPE index);
 
-extern int freePolygone(Polygone* p);
+// task д)
+int delete_polygone_by_index(const char *filename, NTYPE index);
 
-// if fp==NULL - print to console, else to binary file
-extern int writePolygones(FILE* fp, Polygone* p, NTYPE n);
+// task е)
+int is_present_in_file(const char *filename, const Polygone *p);
 
-// delete k-th Polygone, 
-// returns FALSE if not deleted
-extern int deletePolygonesFile(FILE* fp, NTYPE k);
+// task є)
+int find_max_perimeter_polygone(const char *filename, Polygone *result);
 
-extern void showPolygoneFile(FILE* fp, NTYPE k);
+// task ж)
+int find_min_area_polygone(const char *filename, Polygone *result);
 
-extern void showPolygonesFile(FILE* fp);
+// task з)
+NTYPE count_convex_polygons(const char *filename);
 
-int isEqualPolygone(const Polygone* p1,const Polygone* p2);
+//task і)
+NTYPE count_polygons_containing_point(const char *filename, TPoint p);
 
-extern int isPresentPolygone(FILE* fp, const Polygone* p);
+// task й)
+void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(const Polygone *));
 
-extern PTYPE perimeterPolygone(const Polygone* p);
+PTYPE perimeter_polygone(const Polygone *p);
+PTYPE area_polygone(const Polygone *p);
+int is_convex(const Polygone *p);
+int is_point_inside(const Polygone *p, TPoint point);
+int isEqualPoint(TPoint a, TPoint b);
+int isEqualPolygone(const Polygone *p1, const Polygone *p2);
+void free_polygone(Polygone *p);
 
-extern PTYPE areaPolygone(const Polygone* p);
-
-// Чи є багатокутник опуклим?
-extern int isConvexPolygone(const Polygone* p);
-
-extern int maxPerimeterPolygone(FILE* fp, Polygone* p);
-
-extern int minAreaPolygone(FILE* fp, Polygone* p);
-
-extern NTYPE numberConvexPolygones(FILE* fp);
-
-extern NTYPE conditionPolygones(FILE* fp, predicatPolygone Q, const char* fname);
-
-extern NTYPE pointsPolygones(FILE* fp, TPoint p);
-
-//Чи міститься точка Р всередині багатокутника  (на межі - теж всередині)
-extern int pointsPolygoneInside(const Polygone* p, TPoint p0);
-
-
-//Чи є багатокутник Трикутником?
-extern int isTrianglePolygone(const Polygone* p);
-
-//Чи є багатокутник Чотирикутником?
-extern int isQuadrilateralPolygone(const Polygone* p);
-
-
-// Трангуляція багатокутника
-// Повертає кількість трикутників
-extern NTYPE triangulatePolygone(const Polygone* p1, TTriangle* tr);
-
-//Чи перетинаються два багатокутника
-extern int isIntersectPolygones(const Polygone* p1, const Polygone* p2);
-//Знайти багатокутник що утворений перетином двох багатокутників
-extern Polygone intersect_polygone(const Polygone* p1, const Polygone* p2);
-
-//Знайти два багатокутника, ща утворені перетином прямої та багатокутника
-extern Polygone intersect_polygone_line_up(const Polygone* p1, const TLine* p2);
-extern Polygone intersect_polygone_line_down(const Polygone* p1, const TLine* p2);
-
-//Знайти найменший по площі опуклий багатокутник, шо містить даний багатокутник
-extern Polygone convex_wrapper(const Polygone* p1);
-
-//Знайти мінімальний по площі багатокутник, такий що кожна точка будь-якого ребра цього багаткутника знаходиться на відстані не більше 1 від даного багатокутника
-extern Polygone wrapper_distance(const Polygone* p1, PTYPE dist);
-#endif // end of _TYPES_H_
+#endif // _POLYGONE_H_
