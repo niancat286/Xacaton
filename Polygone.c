@@ -416,37 +416,102 @@ void display_polygone_by_index(const char *filename, NTYPE index)
 // task д)
 int delete_polygone_by_index(const char *filename, NTYPE index)
 {
-    FILE *fp_orig = fopen(filename, "rb");
-    if (!fp_orig)
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+//printf("Error: File %s must have .bin or .txt extension.\n", filename);
         return FALSE;
+    }
+
+    FILE *fp_orig = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp_orig) {
+//printf("Error: Cannot open file %s\n", filename);
+        return FALSE;
+    }
+
     NTYPE count;
-    fread(&count, sizeof(NTYPE), 1, fp_orig);
-    if (index >= count)
-    {
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp_orig) != 1) {
+            fclose(fp_orig);
+            return FALSE;
+        }
+    } else {
+        if (fscanf(fp_orig, "%u", &count) != 1) {
+            fclose(fp_orig);
+            return FALSE;
+        }
+    }
+
+    if (index >= count) {
+//printf("Error: Index %u is out of bounds (0-%u).\n", index, count - 1);
         fclose(fp_orig);
         return FALSE;
     }
 
-    const char *temp_filename = "temp.bin";
-    FILE *fp_temp = fopen(temp_filename, "wb");
-    if (!fp_temp)
-    {
+    const char *temp_filename = is_binary ? "temp.bin" : "temp.txt";
+    FILE *fp_temp = fopen(temp_filename, is_binary ? "wb" : "w");
+    if (!fp_temp) {
+//printf("Error: Cannot create temporary file %s\n", temp_filename);
         fclose(fp_orig);
         return FALSE;
     }
 
     NTYPE new_count = count - 1;
-    fwrite(&new_count, sizeof(NTYPE), 1, fp_temp);
-    for (NTYPE i = 0; i < count; i++)
-    {
-        Polygone p;
-        read_one_polygone(fp_orig, &p);
-        if (i != index)
-        {
-            write_one_polygone(fp_temp, &p);
+    if (is_binary) {
+        if (fwrite(&new_count, sizeof(NTYPE), 1, fp_temp) != 1) {
+            fclose(fp_orig);
+            fclose(fp_temp);
+            return FALSE;
         }
-        free_polygone(&p);
+    } else {
+        if (fprintf(fp_temp, "%10u ", new_count) < 0) {
+            fclose(fp_orig);
+            fclose(fp_temp);
+            return FALSE;
+        }
     }
+
+    if (is_binary) {
+        for (NTYPE i = 0; i < count; i++) {
+            Polygone p;
+            if (read_one_polygone(fp_orig, &p)) {
+                if (i != index) {
+                    if (!write_one_polygone(fp_temp, &p)) {
+                        free_polygone(&p);
+                        fclose(fp_orig);
+                        fclose(fp_temp);
+                        return FALSE;
+                    }
+                }
+                free_polygone(&p);
+            } else {
+                fclose(fp_orig);
+                fclose(fp_temp);
+                return FALSE;
+            }
+        }
+    } else {
+        for (NTYPE i = 0; i < count; i++) {
+            Polygone p;
+            if (read_one_polygone_from_text_file(fp_orig, &p)) {
+                if (i != index) {
+                    if (!write_one_polygone_to_text_file(fp_temp, &p)) {
+                        free_polygone(&p);
+                        fclose(fp_orig);
+                        fclose(fp_temp);
+                        return FALSE;
+                    }
+                }
+                free_polygone(&p);
+            } else {
+                fclose(fp_orig);
+                fclose(fp_temp);
+                return FALSE;
+            }
+        }
+    }
+
     fclose(fp_orig);
     fclose(fp_temp);
     remove(filename);
