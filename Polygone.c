@@ -295,7 +295,7 @@ free_polygone(&p);
         fprintf(fp_dest, "%10u ", total_count);
     }
     fclose(fp_dest);
-    printf("Appended %u polygons from %s to %s.\n", src_count, src_filename, dest_filename);
+    printf("Appended %u polygons from %s to %s.\n", src_count-present, src_filename, dest_filename);
 }
 
 // task в)
