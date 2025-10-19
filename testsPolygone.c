@@ -49,11 +49,35 @@ static void create_test_file(const char *filename, Polygone *polygons, NTYPE cou
 
 // Допоміжна функція для читання кількості полігонів
 static NTYPE get_polygon_count(const char *filename) {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp) return 0;
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+//printf("Error: File %s must have .bin or .txt extension.\n", filename);
+        return 0;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+//printf("Error: Cannot open file %s\n", filename);
+        return 0;
+    }
 
     NTYPE count = 0;
-    fread(&count, sizeof(NTYPE), 1, fp);
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+//printf("Error reading polygon count.\n");
+            fclose(fp);
+            return 0;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+//printf("Error reading polygon count.\n");
+            fclose(fp);
+            return 0;
+        }
+    }
+
     fclose(fp);
     return count;
 }
