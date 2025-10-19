@@ -54,6 +54,21 @@ static int read_one_polygone_from_text_file(FILE *fp, Polygone *p)
     return TRUE;
 }
 
+
+static int write_one_polygone_to_text_file(FILE *fp, const Polygone *p)
+{
+    if (fprintf(fp, "%u ", p->n) < 0) {
+        return FALSE;
+    }
+
+    for (NTYPE i = 0; i < p->n; i++) {
+        if (fprintf(fp, "%g %g ", p->vertice[i].x, p->vertice[i].y) < 0) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
 // ВИПРАВЛЕНО: Допоміжна функція для is_point_inside, щоб уникнути UB
 static PTYPE area_from_points(TPoint p1, TPoint p2, TPoint p3)
 {
