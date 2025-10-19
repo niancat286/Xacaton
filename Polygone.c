@@ -695,21 +695,45 @@ int find_min_area_polygone(const char *filename, Polygone *result)
 // task з)
 NTYPE count_convex_polygons(const char *filename)
 {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp)
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+//printf("Error: File %s must have .bin or .txt extension.\n", filename);
         return 0;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+//printf("Error: Cannot open file %s\n", filename);
+        return 0;
+    }
+
     NTYPE count, convex_count = 0;
-    fread(&count, sizeof(NTYPE), 1, fp);
-    for (NTYPE i = 0; i < count; i++)
-    {
-        Polygone temp;
-        if (read_one_polygone(fp, &temp))
-        {
-            if (is_convex(&temp))
-                convex_count++;
-            free_polygone(&temp);
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+            fclose(fp);
+            return 0;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+            fclose(fp);
+            return 0;
         }
     }
+
+    for (NTYPE i = 0; i < count; i++) {
+        Polygone temp;
+        if (is_binary ? read_one_polygone(fp, &temp) : read_one_polygone_from_text_file(fp, &temp)) {
+            if (is_convex(&temp)) convex_count++;
+            free_polygone(&temp);
+        } else {
+            free_polygone(&temp);
+            fclose(fp);
+            return convex_count;
+        }
+    }
+
     fclose(fp);
     return convex_count;
 }
