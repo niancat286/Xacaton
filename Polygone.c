@@ -32,6 +32,28 @@ static int write_one_polygone(FILE *fp, const Polygone *p)
     return TRUE;
 }
 
+static int read_one_polygone_from_text_file(FILE *fp, Polygone *p)
+{    
+    if (fscanf(fp, "%u", &p->n) != 1) {
+        return FALSE;
+    }
+    
+    p->vertice = (TPoint *)malloc(p->n * sizeof(TPoint));
+    if (!p->vertice) {
+        return FALSE;
+    }
+
+    for (NTYPE i = 0; i < p->n; i++) {
+        if (fscanf(fp, "%f %f", &p->vertice[i].x, &p->vertice[i].y) != 2) {
+            free(p->vertice);
+            p->vertice = NULL;
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
 // ВИПРАВЛЕНО: Допоміжна функція для is_point_inside, щоб уникнути UB
 static PTYPE area_from_points(TPoint p1, TPoint p2, TPoint p3)
 {
