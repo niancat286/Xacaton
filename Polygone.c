@@ -139,7 +139,7 @@ void add_polygone_from_console(const char *filename)
             NTYPE zero = 0;
             fwrite(&zero, sizeof(NTYPE), 1, fp);
         } else {
-            fprintf(fp, "0 ");
+            fprintf(fp, "%10u ", zero);
         }
     }
 
@@ -163,7 +163,7 @@ void add_polygone_from_console(const char *filename)
     if (is_binary) {
         fwrite(&count, sizeof(NTYPE), 1, fp);
     } else {
-        fprintf(fp, "%u ", count);
+        fprintf(fp, "%10u ", count);
     }
 
     fclose(fp); 
@@ -174,48 +174,109 @@ void add_polygone_from_console(const char *filename)
 // task б)
 void append_polygons_from_file(const char *dest_filename, const char *src_filename)
 {
-    FILE *fp_src = fopen(src_filename, "rb");
-    if (!fp_src)
-    {
+    
+    const char *src_ext = strrchr(src_filename, '.');
+    int src_is_binary = src_ext && strcmp(src_ext, ".bin") == 0;
+    int src_is_text = src_ext && strcmp(src_ext, ".txt") == 0;
+    if (!src_is_binary && !src_is_text) {
+        printf("Error: Source file %s must have .bin or .txt extension.\n", src_filename);
+        return;
+    }
+
+    const char *dest_ext = strrchr(dest_filename, '.');
+    int dest_is_binary = dest_ext && strcmp(dest_ext, ".bin") == 0;
+    int dest_is_text = dest_ext && strcmp(dest_ext, ".txt") == 0;
+    if (!dest_is_binary && !dest_is_text) {
+        printf("Error: Destination file %s must have .bin or .txt extension.\n", dest_filename);
+        return;
+    }
+
+    FILE *fp_src = fopen(src_filename, src_is_binary ? "rb" : "r");
+    if (!fp_src) {
         printf("Error: Cannot open source file %s\n", src_filename);
         return;
     }
 
     NTYPE src_count;
-    if (fread(&src_count, sizeof(NTYPE), 1, fp_src) != 1 || src_count == 0)
-    {
-        printf("Source file %s is empty or corrupted.\n", src_filename);
-        fclose(fp_src);
-        return;
+    if (src_is_binary) {
+        if (fread(&src_count, sizeof(NTYPE), 1, fp_src) != 1 || src_count == 0) {
+            printf("Source file %s is empty or corrupted.\n", src_filename);
+            fclose(fp_src);
+            return;
+        }
+    } else {
+        if (fscanf(fp_src, "%u", &src_count) != 1 || src_count == 0) {
+            printf("Source file %s is empty or corrupted.\n", src_filename);
+            fclose(fp_src);
+            return;
+        }
     }
 
-    FILE *fp_dest = fopen(dest_filename, "r+b");
-    if (!fp_dest)
-    {
-        fp_dest = fopen(dest_filename, "w+b");
-        NTYPE zero = 0;
-        fwrite(&zero, sizeof(NTYPE), 1, fp_dest);
+    FILE *fp_dest = fopen(dest_filename, dest_is_binary ? "r+b" : "r+");
+    if (!fp_dest) {
+        fp_dest = fopen(dest_filename, dest_is_binary ? "w+b" : "w+");
+        if (!fp_dest) {
+            printf("Error: Cannot open or create destination file %s\n", dest_filename);
+            fclose(fp_src);
+            return;
+        }
+        if (dest_is_binary) {
+            NTYPE zero = 0;
+            fwrite(&zero, sizeof(NTYPE), 1, fp_dest);
+        } else {
+            fprintf(fp_dest, "%10u ", zero);
+        }
     }
 
     NTYPE dest_count;
     rewind(fp_dest);
-    fread(&dest_count, sizeof(NTYPE), 1, fp_dest);
+    if (dest_is_binary) {
+        fread(&dest_count, sizeof(NTYPE), 1, fp_dest) != 1;
+    } else {
+        fscanf(fp_dest, "%u", &dest_count);
+    }
+
+    // Move to end of destination file
     fseek(fp_dest, 0, SEEK_END);
 
-    for (NTYPE i = 0; i < src_count; i++)
-    {
+    for (NTYPE i = 0; i < src_count; i++) {
         Polygone p;
-        if (read_one_polygone(fp_src, &p))
-        {
-            write_one_polygone(fp_dest, &p);
+        if (src_is_binary ? read_one_polygone(fp_src, &p) : read_one_polygone_from_text_file(fp_src, &p)) {
+            if (dest_is_binary) {
+                if (!write_one_polygone(fp_dest, &p)) {
+                    printf("Error writing polygon to %s.\n", dest_filename);
+                    free_polygone(&p);
+                    fclose(fp_src);
+                    fclose(fp_dest);
+                    return;
+                }
+            } else {
+                if (!write_one_polygone_to_text_file(fp_dest, &p)) {
+                    printf("Error writing polygon to %s.\n", dest_filename);
+                    free_polygone(&p);
+                    fclose(fp_src);
+                    fclose(fp_dest);
+                    return;
+                }
+            }
             free_polygone(&p);
+        } else {
+            printf("Error reading polygon from %s.\n", src_filename);
+            free_polygone(&p);
+            fclose(fp_src);
+            fclose(fp_dest);
+            return;
         }
     }
     fclose(fp_src);
 
     NTYPE total_count = dest_count + src_count;
     rewind(fp_dest);
-    fwrite(&total_count, sizeof(NTYPE), 1, fp_dest);
+    if (dest_is_binary) {
+        fwrite(&total_count, sizeof(NTYPE), 1, fp_dest);
+    } else {
+        fprintf(fp_dest, "%10u ", total_count);
+    }
     fclose(fp_dest);
     printf("Appended %u polygons from %s to %s.\n", src_count, src_filename, dest_filename);
 }
