@@ -132,9 +132,10 @@ void add_polygone_from_console(const char *filename)
         free_polygone(&p);
         return;
     }
-
     if(is_present_in_file(filename, &p)){
-        free_polygone(&p); return;
+        free_polygone(&p);
+        printf("Polygon is already in the file.\n"); 
+        return;
     }
 
     FILE *fp = fopen(filename, is_binary ? "r+b" : "r+");
@@ -260,7 +261,7 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
 {
     
     if(!is_valid(src_filename)){
-        printf("%s is corrupted or contains invalid polygons.\n", src_filename);
+        printf("%s is empty, corrupted or contains invalid polygons.\n", src_filename);
         return;
     }
     const char *src_ext = strrchr(src_filename, '.');
@@ -379,6 +380,10 @@ free_polygone(&p);
 // task в)
 void display_all_polygons(const char *filename)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -430,6 +435,10 @@ void display_all_polygons(const char *filename)
 // task г)
 void display_polygone_by_index(const char *filename, NTYPE index)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -511,6 +520,10 @@ void display_polygone_by_index(const char *filename, NTYPE index)
 // task д)
 int delete_polygone_by_index(const char *filename, NTYPE index)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return FALSE;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -667,6 +680,10 @@ int is_present_in_file(const char *filename, const Polygone *p)
 // task є)
 int find_max_perimeter_polygone(const char *filename, Polygone *result)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return FALSE;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -727,6 +744,10 @@ int find_max_perimeter_polygone(const char *filename, Polygone *result)
 // task ж)
 int find_min_area_polygone(const char *filename, Polygone *result)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return FALSE;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -790,6 +811,10 @@ int find_min_area_polygone(const char *filename, Polygone *result)
 // task з)
 NTYPE count_convex_polygons(const char *filename)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return 0;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -836,6 +861,10 @@ NTYPE count_convex_polygons(const char *filename)
 // task і)
 NTYPE count_polygons_containing_point(const char *filename, TPoint p)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return 0;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -883,7 +912,7 @@ NTYPE count_polygons_containing_point(const char *filename, TPoint p)
 void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(const Polygone *))
 {
     if(!is_valid(file_a)){
-        printf("%s is corrupted or contains invalid polygons.\n", file_a);
+        printf("%s is empty, corrupted or contains invalid polygons.\n", file_a);
         return;
     }
     
@@ -922,10 +951,15 @@ void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(co
     } else {
         fprintf(fp_b, "%10u ", 0);
     }
-
+    int present = 0;
     for (NTYPE i = 0; i < count_a; i++) {
         Polygone p;
         if (a_is_binary ? read_one_polygone(fp_a, &p) : read_one_polygone_from_text_file(fp_a, &p)) {
+            if(is_present_in_file(file_b, &p)){
+                present++;
+                free_polygone(&p);
+                continue;
+            }    
             if (predicate(&p)) {
                 if (b_is_binary) {
                     if (!write_one_polygone(fp_b, &p)) {
@@ -947,7 +981,7 @@ void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(co
             free_polygone(&p);
         }
     }
-
+    count_b -= present;
     if (b_is_binary) {
         rewind(fp_b);
         fwrite(&count_b, sizeof(NTYPE), 1, fp_b);
