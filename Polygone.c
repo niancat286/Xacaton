@@ -335,35 +335,81 @@ void display_all_polygons(const char *filename)
 // task г)
 void display_polygone_by_index(const char *filename, NTYPE index)
 {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp)
-    {
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        printf("Error: File %s must have .bin or .txt extension.\n", filename);
+        return;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
         printf("Cannot open file %s\n", filename);
         return;
     }
+
     NTYPE count;
-    fread(&count, sizeof(NTYPE), 1, fp);
-    if (index >= count)
-    {
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+            printf("File is empty or corrupted.\n");
+            fclose(fp);
+            return;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+            printf("File is empty or corrupted.\n");
+            fclose(fp);
+            return;
+        }
+    }
+
+    if (index >= count) {
         printf("Error: Index %u is out of bounds (0-%u).\n", index, count - 1);
         fclose(fp);
         return;
     }
-    for (NTYPE i = 0; i < index; i++)
-    {
-        NTYPE num_vertices;
-        fread(&num_vertices, sizeof(NTYPE), 1, fp);
-        fseek(fp, num_vertices * sizeof(TPoint), SEEK_CUR);
+
+    if (is_binary) {
+        for (NTYPE i = 0; i < index; i++) {
+            NTYPE num_vertices;
+            if (fread(&num_vertices, sizeof(NTYPE), 1, fp) != 1) {
+                printf("Error reading polygon %u from %s.\n", i, filename);
+                fclose(fp);
+                return;
+            }
+            fseek(fp, num_vertices * sizeof(TPoint), SEEK_CUR);
+        }
+    } else {
+        for (NTYPE i = 0; i < index; i++) {
+            NTYPE num_vertices;
+            if (fscanf(fp, "%u", &num_vertices) != 1) {
+                printf("Error reading polygon %u from %s.\n", i, filename);
+                fclose(fp);
+                return;
+            }
+            for (NTYPE j = 0; j < num_vertices; j++) {
+                float x, y;
+                if (fscanf(fp, "%f %f", &x, &y) != 2) {
+                    printf("Error reading vertex %u of polygon %u from %s.\n", j+1, i, filename);
+                    fclose(fp);
+                    return;
+                }
+            }
+        }
     }
+
     Polygone p;
-    if (read_one_polygone(fp, &p))
-    {
+    if (is_binary ? read_one_polygone(fp, &p) : read_one_polygone_from_text_file(fp, &p)) {
         printf("--- Polygon Index %u ---\n", index);
         printf("Vertices: %u\n", p.n);
         for (NTYPE i = 0; i < p.n; i++)
             printf("  (%.2f, %.2f)\n", p.vertice[i].x, p.vertice[i].y);
         free_polygone(&p);
+    } else {
+        printf("Error reading polygon %u from %s.\n", index, filename);
     }
+
     fclose(fp);
 }
 
