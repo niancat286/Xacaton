@@ -882,6 +882,11 @@ NTYPE count_polygons_containing_point(const char *filename, TPoint p)
 // task й)
 void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(const Polygone *))
 {
+    if(!is_valid(file_a)){
+        printf("%s is corrupted or contains invalid polygons.\n", file_a);
+        return;
+    }
+    
     const char *ext_a = strrchr(file_a, '.');
     int a_is_binary = ext_a && strcmp(ext_a, ".bin") == 0;
     int a_is_text = ext_a && strcmp(ext_a, ".txt") == 0;
