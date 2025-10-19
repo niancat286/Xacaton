@@ -135,8 +135,8 @@ void add_polygone_from_console(const char *filename)
             free_polygone(&p);
             return;
         }
+        NTYPE zero = 0;
         if (is_binary) {
-            NTYPE zero = 0;
             fwrite(&zero, sizeof(NTYPE), 1, fp);
         } else {
             fprintf(fp, "%10u ", zero);
@@ -220,8 +220,8 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
             fclose(fp_src);
             return;
         }
+        NTYPE zero = 0;
         if (dest_is_binary) {
-            NTYPE zero = 0;
             fwrite(&zero, sizeof(NTYPE), 1, fp_dest);
         } else {
             fprintf(fp_dest, "%10u ", zero);
