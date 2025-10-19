@@ -284,28 +284,48 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
 // task в)
 void display_all_polygons(const char *filename)
 {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp)
-    {
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        printf("Error: File %s must have .bin or .txt extension.\n", filename);
+        return;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
         printf("Cannot open file %s\n", filename);
         return;
     }
+
     NTYPE count;
-    if (fread(&count, sizeof(NTYPE), 1, fp) != 1 || count == 0)
-    {
-        printf("File is empty or corrupted.\n");
-        fclose(fp);
-        return;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1 || count == 0) {
+            printf("File is empty or corrupted.\n");
+            fclose(fp);
+            return;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1 || count == 0) {
+            printf("File is empty or corrupted.\n");
+            fclose(fp);
+            return;
+        }
     }
+
     printf("=== Content of '%s' (Total: %u) ===\n", filename, count);
-    for (NTYPE i = 0; i < count; i++)
-    {
+    for (NTYPE i = 0; i < count; i++) {
         Polygone p;
-        if (read_one_polygone(fp, &p))
-        {
+        if (is_binary ? read_one_polygone(fp, &p) : read_one_polygone_from_text_file(fp, &p)) {
             printf("\n--- Polygon Index %u ---\n", i);
-            printf("Vertices: %u, Area: %.2f, Perimeter: %.2f, Convex: %s\n", p.n, area_polygone(&p), perimeter_polygone(&p), is_convex(&p) ? "Yes" : "No");
+            printf("Vertices: %u, Area: %.2f, Perimeter: %.2f, Convex: %s\n", 
+                   p.n, area_polygone(&p), perimeter_polygone(&p), is_convex(&p) ? "Yes" : "No");
             free_polygone(&p);
+        } else {
+            printf("Error reading polygon %u from %s.\n", i, filename);
+            free_polygone(&p);
+            fclose(fp);
+            return;
         }
     }
     printf("==================================\n");
