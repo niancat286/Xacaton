@@ -182,10 +182,87 @@ void add_polygone_from_console(const char *filename)
     printf("Polygon added successfully.\n");
 }
 
+int is_valid(const char *filename){
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        printf("Error: Source file %s must have .bin or .txt extension.\n", filename);
+        return FALSE;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+// printf("Error: Cannot open file %s\n", filename);
+        return FALSE;
+    }
+
+    int count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+// printf("Error: Failed to read polygon count from %s\n", filename);
+            fclose(fp);
+            return FALSE;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+// printf("Error: Failed to read polygon count from %s\n", filename);
+            fclose(fp);
+            return FALSE;
+        }
+    }
+
+    if (count < 1) {
+// printf("Error: Invalid polygon count in %s\n", filename);
+        fclose(fp);
+        return FALSE;
+    }
+
+    for (NTYPE i = 0; i < count; i++) {
+        int n;
+        if (is_binary) {
+            if (fread(&n, sizeof(NTYPE), 1, fp) != 1 || n < 3) {
+                // printf("Error: Failed to read vertex count for polygon %u in %s\n", i, filename);
+                fclose(fp);
+                return FALSE;
+            }
+            // Skip vertices
+            if (fseek(fp, n * sizeof(TPoint), SEEK_CUR) != 0) {
+                // printf("Error: Failed to skip vertices for polygon %u in %s\n", i, filename);
+                fclose(fp);
+                return FALSE;
+            }
+        } else {
+            if (fscanf(fp, "%u", &n) != 1 || n < 3) {
+                printf("%d\n", n);
+                // printf("Error: Failed to read vertex count for polygon %u in %s\n", i, filename);
+                fclose(fp);
+                return FALSE;
+            }
+            // Skip vertices
+            float x, y;
+            for (NTYPE j = 0; j < n; j++) {
+                if (fscanf(fp, "%f %f", &x, &y) != 2) {
+                    // printf("Error: Failed to read vertex %u for polygon %u in %s\n", j, i, filename);
+                    fclose(fp);
+                    return FALSE;
+                }
+            }
+        }
+    }
+    fclose(fp);
+    return TRUE;
+
+}
+
 // task б)
 void append_polygons_from_file(const char *dest_filename, const char *src_filename)
 {
     
+    if(!is_valid(dest_filename)){
+        printf("%s is corrupted or contains invalid polygons.\n", src_filename);
+        return;
+    }
     const char *src_ext = strrchr(src_filename, '.');
     int src_is_binary = src_ext && strcmp(src_ext, ".bin") == 0;
     int src_is_text = src_ext && strcmp(src_ext, ".txt") == 0;
@@ -193,6 +270,7 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
         printf("Error: Source file %s must have .bin or .txt extension.\n", src_filename);
         return;
     }
+
 
     const char *dest_ext = strrchr(dest_filename, '.');
     int dest_is_binary = dest_ext && strcmp(dest_ext, ".bin") == 0;
@@ -238,7 +316,7 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
             fprintf(fp_dest, "%10u ", zero);
         }
     }
-
+    
     int dest_count;
     rewind(fp_dest);
     if (dest_is_binary) {
