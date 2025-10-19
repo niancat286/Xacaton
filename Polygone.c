@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
-
+#include <string.h>
 #include "Polygone.h"
 
 #define EPSILON 1e-6f
@@ -117,33 +117,56 @@ void add_polygone_from_console(const char *filename)
             return;
         }
     }
+    
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        printf("Error: File must have .bin or .txt extension.\n");
+        free_polygone(&p);
+        return;
+    }
 
-    FILE *fp = fopen(filename, "r+b");
-    if (!fp)
-    {
-        fp = fopen(filename, "w+b");
-        if (!fp)
-        {
+    FILE *fp = fopen(filename, is_binary ? "r+b" : "r+");
+    if (!fp) {
+        fp = fopen(filename, is_binary ? "w+b" : "w+");
+        if (!fp) {
             printf("Error: Cannot open or create file %s\n", filename);
             free_polygone(&p);
             return;
         }
-        NTYPE zero = 0;
-        fwrite(&zero, sizeof(NTYPE), 1, fp);
+        if (is_binary) {
+            NTYPE zero = 0;
+            fwrite(&zero, sizeof(NTYPE), 1, fp);
+        } else {
+            fprintf(fp, "0 ");
+        }
     }
 
     NTYPE count;
     rewind(fp);
-    fread(&count, sizeof(NTYPE), 1, fp);
+    if (is_binary) {
+        fread(&count, sizeof(NTYPE), 1, fp);
+    } else {
+        fscanf(fp, "%u", &count);
+    }
 
     fseek(fp, 0, SEEK_END);
-    write_one_polygone(fp, &p);
+    if (is_binary) {
+        write_one_polygone(fp, &p);
+    } else {
+        write_one_polygone_to_text_file(fp, &p);
+    }
 
     count++;
     rewind(fp);
-    fwrite(&count, sizeof(NTYPE), 1, fp);
+    if (is_binary) {
+        fwrite(&count, sizeof(NTYPE), 1, fp);
+    } else {
+        fprintf(fp, "%u ", count);
+    }
 
-    fclose(fp);
+    fclose(fp); 
     free_polygone(&p);
     printf("Polygon added successfully.\n");
 }
