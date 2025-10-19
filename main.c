@@ -28,7 +28,7 @@ void print_menu() {
 }
 
 int main() {
-    const char* main_db = "polygons.bin";
+    const char* main_db = "polygons.txt";
     int choice;
 
     do {
@@ -129,7 +129,7 @@ int main() {
                 break;
             }
             case 11: {
-                const char* filtered_db = "convex_only.bin";
+                const char* filtered_db = "convex_only.txt";
                 filter_polygons(main_db, filtered_db, is_convex);
                 printf("Filtered polygons saved to '%s'. Displaying content:\n", filtered_db);
                 display_all_polygons(filtered_db);
