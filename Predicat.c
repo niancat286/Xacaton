@@ -1,6 +1,7 @@
 #include "Predicat.h"
 #include <stdio.h>
 #include <assert.h>
+#include "vectors.h"
 
 int isEqual(PTYPE a, PTYPE b){
     return fabs(a-b) < __DBL_EPSILON__;

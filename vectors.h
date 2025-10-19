@@ -8,7 +8,6 @@ extern "C"
 
 #include "Types.h"
 
-    // TVECT виправив
     typedef struct TVECT
     {
         PTYPE x;

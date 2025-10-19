@@ -2,374 +2,1054 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
-
+#include <string.h>
 #include "Polygone.h"
-#include "file_forming.h"
 
-#define LEN 30
-/*
-int inputPolygone(FILE* fp, Polygone* p){
+#define EPSILON 1e-6f
 
-    NTYPE n;
-
-    if(fp)
-        fscanf(fp,"%u",&n);
-    else{
-        printf("N=");
-        fscanf(stdin," %u",&n);
+static int read_one_polygone(FILE *fp, Polygone *p)
+{
+    if (fread(&p->n, sizeof(NTYPE), 1, fp) != 1 || p->n < 3)
+        return FALSE;
+    p->vertice = (TPoint *)malloc(p->n * sizeof(TPoint));
+    if (!p->vertice)
+        return FALSE;
+    if (fread(p->vertice, sizeof(TPoint), p->n, fp) != p->n)
+    {
+       printf("readone+"); 
+        free(p->vertice);
+        p->vertice = NULL;
+        return FALSE;
+        printf("-\n");
     }
-
-    if(n<=2) return FALSE;
-
-    p->n = n;
-    p->vertice = (TPoint*) malloc(n * 2 * sizeof(TPoint));
-    int scan_res = 0;
-    // ....
+    return TRUE;
 }
 
-int writePolygone_binary(FILE* fp, Polygone* p) {
-    assert(fp != 0);
-    assert(p != 0);
-    int size = fwrite(&p->n, sizeof(NTYPE), 1, fp);
-    if (size != 1) return 0;
-    for (int i = 0; i < p->n; i++) {
-        int size1 = fwrite(&p->vertice[i].x, sizeof(PTYPE), 1, fp);
-        int size2 = fwrite(&p->vertice[i].y, sizeof(PTYPE), 1, fp);
-        if (size1 != 1 || size2 != 1) return 0;
-    }
-    return 1;
+static int write_one_polygone(FILE *fp, const Polygone *p)
+{
+    if (fwrite(&p->n, sizeof(NTYPE), 1, fp) != 1)
+        return FALSE;
+    if (fwrite(p->vertice, sizeof(TPoint), p->n, fp) != p->n)
+        return FALSE;
+    return TRUE;
 }
 
-// text file
-int writePolygone(FILE* fp, Polygone* p) {
-    assert(fp != 0);
-    assert(p != 0);
-    //
-
-}
-
-void showPolygonesFile(FILE* fp) {
-    Polygone* polygones = readPolygones(fp);
-    int i = 0;
-    while(1) {
-        if (polygones[i].n == 0) {
-            break;
-        }
-        outputPolygon(polygones[i]);
-        i++;
-    }
-}
-
-PTYPE area(TPoint p1, TPoint p2, TPoint p3) {
-    TVECT v1 = setVector(p2, p1);
-    TVECT v2 = setVector(p2, p3);
-    PTYPE par_area = lengthVector(vectorMultVector(v1, v2));
-    return par_area / 2.0;
-}
-
-int freePolygone(Polygone* p){
-    if(p->vertice)free(p->vertice);
-    return 0;
-}
-*/
-PTYPE area_polygon(Polygone p) {
-    if (p.n < 3) return 0;
-    PTYPE area = 0;
-    for (int i = 0; i < p.n; i++) {
-        int j = (i + 1) % p.n;
-        area += p.vertice[i].x * p.vertice[j].y;
-        area -= p.vertice[j].x * p.vertice[i].y;
-    }
-    
-    return fabs(area) / 2.0;
-}
-/*
-NTYPE inPolygon(Polygone p, TPoint point) {
-    NTYPE power = p.n;
-    PTYPE res = 0;
-    for (int i = 0; i < power - 1; i++) {
-        res += area(p.vertice[i], point, p.vertice[i+1]);
-    }
-    res += area(p.vertice[0], point, p.vertice[power-1]);
-    if (isEqual(area_polygon(p), res)) {
-        return TRUE;
-    }
-    else {
+static int read_one_polygone_from_text_file(FILE *fp, Polygone *p)
+{    
+    if (fscanf(fp, "%u", &p->n) != 1) {
         return FALSE;
     }
-}
 
-NTYPE pointsPolygones(FILE* fp, TPoint point) {
-    assert(fp != 0);
-    int i = 0, res = 0, n = 0;
-    unsigned int M;
-    fread(&M, sizeof(unsigned int), 1, fp);
-    for (int i = 0; i < M; i++) {
-        Polygone p;
-        fread(&p.n, sizeof(unsigned int), 1, fp);
-        p.vertice = (TPoint*) malloc(p.n*sizeof(TPoint));
-        for (int j = 0; j < p.n; j++) {
-            fread(&p.vertice[j].x, sizeof(PTYPE), 1, fp);
-            fread(&p.vertice[j].y, sizeof(PTYPE), 1, fp);
-        }
-        if (inPolygon(p, point)) {
-            res++;
-        }
-        free(p.vertice);
-    }
-    return res;
-}
-*/
-int minAreaPolygone(FILE* fp, Polygone* p) {
-    assert(fp != NULL);
-    assert(p != NULL);
-    p->vertice = NULL;
-    p->n = 0;
-    Polygone temp;
-    PTYPE min_area = 0;
-    int found = FALSE;
-    unsigned int M;
-    if (fread(&M, sizeof(unsigned int), 1, fp) != 1) {
-        return FALSE;
-    }
-    for (int i = 0; i < M; i++) {
-        if (fread(&temp.n, sizeof(unsigned int), 1, fp) != 1) {
-            if (p->vertice) free(p->vertice);
-            return FALSE;
-        }
-        temp.vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
-        if (temp.vertice == NULL) {
-            if (p->vertice) free(p->vertice);
-            return FALSE;
-        }
-        int read_error = FALSE;
-        for (int j = 0; j < temp.n; j++) {
-            if (fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
-                fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp) != 1) {
-                read_error = TRUE;
-                break;
-            }
-        }
-        if (read_error) {
-            free(temp.vertice);
-            if (p->vertice) free(p->vertice);
-            return FALSE;
-        }
-        PTYPE area = area_polygon(temp);
-        if (!found || area < min_area) {
-            min_area = area;
-            found = TRUE;
-            if (p->vertice) {
-                free(p->vertice);
-            }
-            p->n = temp.n;
-            p->vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
-            if (p->vertice == NULL) {
-                free(temp.vertice);
-                return FALSE;
-            }
-            for (int j = 0; j < temp.n; j++) {
-                p->vertice[j].x = temp.vertice[j].x;
-                p->vertice[j].y = temp.vertice[j].y;
-            }
-        }
-        free(temp.vertice);
-    }
-    return found;
-}
-/*
-int isConvexPolygone(const Polygone* p) {
     if (p->n < 3) return FALSE;
-    int sign = 0;
-    for (int i = 0; i < p->n; i++) {
-        TPoint p1 = p->vertice[i];
-        TPoint p2 = p->vertice[(i + 1) % p->n];
-        TPoint p3 = p->vertice[(i + 2) % p->n];
-        TVECT v1 = setVector(p1, p2);
-        TVECT v2 = setVector(p2, p3);
-        /// Векторний добуток
+    
+    p->vertice = (TPoint *)malloc(p->n * sizeof(TPoint));
+    if (!p->vertice) {
+        return FALSE;
+    }
 
-        if (cross_product_z != 0) {
-            int current_sign = (cross_product_z > 0) ? 1 : -1;
-            if (sign == 0){
-                sign = current_sign;
-            }else if (sign != current_sign){
-                return FALSE;
-            }
+    for (NTYPE i = 0; i < p->n; i++) {
+        if (fscanf(fp, "%f %f", &p->vertice[i].x, &p->vertice[i].y) != 2) {
+            free(p->vertice);
+            p->vertice = NULL;
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+
+static int write_one_polygone_to_text_file(FILE *fp, const Polygone *p)
+{
+    
+    if (fprintf(fp, "%u ", p->n) < 0) {
+        return FALSE;
+    }
+
+    for (NTYPE i = 0; i < p->n; i++) {
+        if (fprintf(fp, "%g %g ", p->vertice[i].x, p->vertice[i].y) < 0) {
+            return FALSE;
         }
     }
     return TRUE;
 }
 
-NTYPE numberConvexPolygones(FILE* fp) {
-    assert(fp != NULL);
-    unsigned int M;
-    fread(&M, sizeof(unsigned int), 1, fp);
-    int count = 0;
-    for (int i = 0; i < M; i++) {
-        Polygone p;
-        fread(&p.n, sizeof(unsigned int), 1, fp);
-        p.vertice = (TPoint*)malloc(p.n * sizeof(TPoint));
-        for (int j = 0; j < p.n; j++) {
-            fread(&p.vertice[j].x, sizeof(PTYPE), 1, fp);
-            fread(&p.vertice[j].y, sizeof(PTYPE), 1, fp);
-        }
-        if (isConvexPolygone(&p)) {
-            count++;
-        }
-        free(p.vertice);
-    }
-    return count;
-}
-*/
-/*
-int isEqualPoint(struct TPoint a, struct TPoint b)
+static PTYPE area_from_points(TPoint p1, TPoint p2, TPoint p3)
 {
-    return fabs(a.x - b.x) < 1e-6 && fabs(a.y - b.y) < 1e-6;
+    return fabsf(p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y)) / 2.0f;
 }
 
-int isEqualPolygone(const struct Polygone *p1, const struct Polygone *p2)
+
+void free_polygone(Polygone *p)
+{
+    if (p && p->vertice)
+    {
+        free(p->vertice);
+        p->vertice = NULL;
+        p->n = 0;
+    }
+}
+
+// task а)
+void add_polygone_from_console(const char *filename)
+{
+
+    Polygone p = {0, NULL};
+    printf("Enter number of vertices N (>=3): ");
+    if (scanf("%u", &p.n) != 1 || p.n < 3)
+    {
+        printf("Error: number of vertices must be 3 or more.\n");
+        while (getchar() != '\n')
+            ;
+        return;
+    }
+
+    p.vertice = (TPoint *)malloc(p.n * sizeof(TPoint));
+    if (!p.vertice)
+    {
+        printf("Memory allocation error!\n");
+        return;
+    }
+
+    printf("Enter coordinates for %u vertices (format: x y):\n", p.n);
+    for (NTYPE i = 0; i < p.n; i++)
+    {
+        printf("Vertex %u: ", i + 1);
+        if (scanf("%f %f", &p.vertice[i].x, &p.vertice[i].y) != 2)
+        {
+            printf("Error reading coordinates.\n");
+            free_polygone(&p);
+            return;
+        }
+    }
+    
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        printf("Error: File must have .bin or .txt extension.\n");
+        free_polygone(&p);
+        return;
+    }
+
+    if(is_present_in_file(filename, &p)){
+        free_polygone(&p); return;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "r+b" : "r+");
+    if (!fp) {
+        fp = fopen(filename, is_binary ? "w+b" : "w+");
+        if (!fp) {
+            printf("Error: Cannot open or create file %s\n", filename);
+            free_polygone(&p);
+            return;
+        }
+        NTYPE zero = 0;
+        if (is_binary) {
+            fwrite(&zero, sizeof(NTYPE), 1, fp);
+        } else {
+            fprintf(fp, "%10u ", zero);
+        }
+    }
+
+    NTYPE count;
+    rewind(fp);
+    if (is_binary) {
+        fread(&count, sizeof(NTYPE), 1, fp);
+    } else {
+        fscanf(fp, "%u", &count);
+    }
+
+    
+    fseek(fp, 0, SEEK_END);
+    if (is_binary) {
+        write_one_polygone(fp, &p);
+    } else {
+        write_one_polygone_to_text_file(fp, &p);
+    }
+
+    count++;
+    rewind(fp);
+    if (is_binary) {
+        fwrite(&count, sizeof(NTYPE), 1, fp);
+    } else {
+        fprintf(fp, "%10u ", count);
+    }
+
+    fclose(fp); 
+    free_polygone(&p);
+    printf("Polygon added successfully.\n");
+}
+
+int is_valid(const char *filename){
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        printf("Error: Source file %s must have .bin or .txt extension.\n", filename);
+        return FALSE;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+        return FALSE;
+    }
+
+    int count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+            fclose(fp);
+            return FALSE;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+            fclose(fp);
+            return FALSE;
+        }
+    }
+
+    if (count < 1) {
+        fclose(fp);
+        return FALSE;
+    }
+
+    for (NTYPE i = 0; i < count; i++) {
+        int n;
+        if (is_binary) {
+            if (fread(&n, sizeof(NTYPE), 1, fp) != 1 || n < 3) {
+                                fclose(fp);
+                return FALSE;
+            }
+            if (fseek(fp, n * sizeof(TPoint), SEEK_CUR) != 0) {
+                                fclose(fp);
+                return FALSE;
+            }
+        } else {
+            if (fscanf(fp, "%u", &n) != 1 || n < 3) {
+                printf("%d\n", n);
+                                fclose(fp);
+                return FALSE;
+            }
+            float x, y;
+            for (NTYPE j = 0; j < n; j++) {
+                if (fscanf(fp, "%f %f", &x, &y) != 2) {
+                    fclose(fp);
+                    return FALSE;
+                }
+            }
+        }
+    }
+    fclose(fp);
+    return TRUE;
+
+}
+
+// task б)
+void append_polygons_from_file(const char *dest_filename, const char *src_filename)
+{
+    if(!is_valid(src_filename)){
+        printf("%s is corrupted or contains invalid polygons.\n", src_filename);
+        return;
+    }
+    const char *src_ext = strrchr(src_filename, '.');
+    int src_is_binary = src_ext && strcmp(src_ext, ".bin") == 0;
+    int src_is_text = src_ext && strcmp(src_ext, ".txt") == 0;
+    if (!src_is_binary && !src_is_text) {
+        printf("Error: Source file %s must have .bin or .txt extension.\n", src_filename);
+        return;
+    }
+
+    const char *dest_ext = strrchr(dest_filename, '.');
+    int dest_is_binary = dest_ext && strcmp(dest_ext, ".bin") == 0;
+    int dest_is_text = dest_ext && strcmp(dest_ext, ".txt") == 0;
+    if (!dest_is_binary && !dest_is_text) {
+        printf("Error: Destination file %s must have .bin or .txt extension.\n", dest_filename);
+        return;
+    }
+
+    FILE *fp_src = fopen(src_filename, src_is_binary ? "rb" : "r");
+    if (!fp_src) {
+        printf("Error: Cannot open source file %s\n", src_filename);
+        return;
+    }
+
+    NTYPE src_count;
+    if (src_is_binary) {
+        if (fread(&src_count, sizeof(NTYPE), 1, fp_src) != 1) {
+            printf("Source file %s is empty or corrupted.\n", src_filename);
+            fclose(fp_src);
+            return;
+        }
+    } else {
+        if (fscanf(fp_src, "%u", &src_count) != 1) {
+            printf("Source file %s is empty or corrupted.\n", src_filename);
+            fclose(fp_src);
+            return;
+        }
+    }
+
+    if (src_count == 0) {
+        printf("Source file %s contains 0 polygons - nothing to append.\n", src_filename);
+        fclose(fp_src);
+        return;
+    }
+
+    FILE *fp_dest = fopen(dest_filename, dest_is_binary ? "r+b" : "r+");
+    if (!fp_dest) {
+        fp_dest = fopen(dest_filename, dest_is_binary ? "w+b" : "w+");
+        if (!fp_dest) {
+            printf("Error: Cannot open or create destination file %s\n", dest_filename);
+            fclose(fp_src);
+            return;
+        }
+        NTYPE zero = 0;
+        if (dest_is_binary) {
+            fwrite(&zero, sizeof(NTYPE), 1, fp_dest);
+        } else {
+            fprintf(fp_dest, "%u ", zero);
+        }
+    }
+
+    NTYPE dest_count;
+    rewind(fp_dest);
+    if (dest_is_binary) {
+        if (fread(&dest_count, sizeof(NTYPE), 1, fp_dest) != 1) {
+            dest_count = 0;
+        }
+    } else {
+        if (fscanf(fp_dest, "%u", &dest_count) != 1) {
+            dest_count = 0;
+        }
+    }
+
+    fseek(fp_dest, 0, SEEK_END);
+    int present = 0;
+    for (NTYPE i = 0; i < src_count; i++) {
+        Polygone p;
+        if (src_is_binary ? read_one_polygone(fp_src, &p) : read_one_polygone_from_text_file(fp_src, &p)) {
+           if(is_present_in_file(dest_filename, &p)){
+                present++;
+                free_polygone(&p);
+                continue;
+            }
+            if (dest_is_binary) {
+                if (!write_one_polygone(fp_dest, &p)) {
+                    printf("Error writing polygon to %s.\n", dest_filename);
+                    free_polygone(&p);
+                    fclose(fp_src);
+                    fclose(fp_dest);
+                    return;
+                }
+            } else {
+                if (!write_one_polygone_to_text_file(fp_dest, &p)) {
+                    printf("Error writing polygon to %s.\n", dest_filename);
+                    free_polygone(&p);
+                    fclose(fp_src);
+                    fclose(fp_dest);
+                    return;
+                }
+            }
+            free_polygone(&p);
+        } else {
+            printf("Error reading polygon %u from %s.\n", i, src_filename);
+            free_polygone(&p);
+            fclose(fp_src);
+            fclose(fp_dest);
+            return;
+        }
+    }
+    fclose(fp_src);
+
+NTYPE total_count = dest_count + src_count - present;
+    rewind(fp_dest);
+    if (dest_is_binary) {
+        fwrite(&total_count, sizeof(NTYPE), 1, fp_dest);
+    } else {
+        fprintf(fp_dest, "%10u ", total_count);
+    }
+    fclose(fp_dest);
+    printf("Appended %u polygons from %s to %s.\n", src_count-present, src_filename, dest_filename);
+}
+
+// task в)
+void display_all_polygons(const char *filename)
+{
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        printf("Error: File %s must have .bin or .txt extension.\n", filename);
+        return;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+        printf("Cannot open file %s\n", filename);
+        return;
+    }
+
+    NTYPE count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1 || count == 0) {
+            printf("File is empty or corrupted.\n");
+            fclose(fp);
+            return;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1 || count == 0) {
+            printf("File is empty or corrupted.\n");
+            fclose(fp);
+            return;
+        }
+    }
+
+    printf("=== Content of '%s' (Total: %u) ===\n", filename, count);
+    for (NTYPE i = 0; i < count; i++) {
+        Polygone p;
+        if (is_binary ? read_one_polygone(fp, &p) : read_one_polygone_from_text_file(fp, &p)) {
+            printf("\n--- Polygon Index %u ---\n", i);
+            printf("Vertices: %u, Area: %.2f, Perimeter: %.2f, Convex: %s\n", 
+                   p.n, area_polygone(&p), perimeter_polygone(&p), is_convex(&p) ? "Yes" : "No");
+            free_polygone(&p);
+        } else {
+            printf("Error reading polygon %u from %s.\n", i, filename);
+            free_polygone(&p);
+            fclose(fp);
+            return;
+        }
+    }
+    printf("==================================\n");
+    fclose(fp);
+}
+
+// task г)
+void display_polygone_by_index(const char *filename, NTYPE index)
+{
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        printf("Error: File %s must have .bin or .txt extension.\n", filename);
+        return;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+        printf("Cannot open file %s\n", filename);
+        return;
+    }
+
+    NTYPE count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+            printf("File is empty or corrupted.\n");
+            fclose(fp);
+            return;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+            printf("File is empty or corrupted.\n");
+            fclose(fp);
+            return;
+        }
+    }
+
+    if (index >= count) {
+        printf("Error: Index %u is out of bounds (0-%u).\n", index, count - 1);
+        fclose(fp);
+        return;
+    }
+
+    if (is_binary) {
+        for (NTYPE i = 0; i < index; i++) {
+            NTYPE num_vertices;
+            if (fread(&num_vertices, sizeof(NTYPE), 1, fp) != 1) {
+                printf("Error reading polygon %u from %s.\n", i, filename);
+                fclose(fp);
+                return;
+            }
+            fseek(fp, num_vertices * sizeof(TPoint), SEEK_CUR);
+        }
+    } else {
+        for (NTYPE i = 0; i < index; i++) {
+            NTYPE num_vertices;
+            if (fscanf(fp, "%u", &num_vertices) != 1) {
+                printf("Error reading polygon %u from %s.\n", i, filename);
+                fclose(fp);
+                return;
+            }
+            for (NTYPE j = 0; j < num_vertices; j++) {
+                float x, y;
+                if (fscanf(fp, "%f %f", &x, &y) != 2) {
+                    printf("Error reading vertex %u of polygon %u from %s.\n", j+1, i, filename);
+                    fclose(fp);
+                    return;
+                }
+            }
+        }
+    }
+
+    Polygone p;
+    if (is_binary ? read_one_polygone(fp, &p) : read_one_polygone_from_text_file(fp, &p)) {
+        printf("--- Polygon Index %u ---\n", index);
+        printf("Vertices: %u\n", p.n);
+        for (NTYPE i = 0; i < p.n; i++)
+            printf("  (%.2f, %.2f)\n", p.vertice[i].x, p.vertice[i].y);
+        free_polygone(&p);
+    } else {
+        printf("Error reading polygon %u from %s.\n", index, filename);
+    }
+
+    fclose(fp);
+}
+
+// task д)
+int delete_polygone_by_index(const char *filename, NTYPE index)
+{
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        return FALSE;
+    }
+
+    FILE *fp_orig = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp_orig) {
+        return FALSE;
+    }
+
+    NTYPE count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp_orig) != 1) {
+            fclose(fp_orig);
+            return FALSE;
+        }
+    } else {
+        if (fscanf(fp_orig, "%u", &count) != 1) {
+            fclose(fp_orig);
+            return FALSE;
+        }
+    }
+
+    if (index >= count) {
+        fclose(fp_orig);
+        return FALSE;
+    }
+
+    const char *temp_filename = is_binary ? "temp.bin" : "temp.txt";
+    FILE *fp_temp = fopen(temp_filename, is_binary ? "wb" : "w");
+    if (!fp_temp) {
+        fclose(fp_orig);
+        return FALSE;
+    }
+
+    NTYPE new_count = count - 1;
+    if (is_binary) {
+        if (fwrite(&new_count, sizeof(NTYPE), 1, fp_temp) != 1) {
+            fclose(fp_orig);
+            fclose(fp_temp);
+            return FALSE;
+        }
+    } else {
+        if (fprintf(fp_temp, "%10u ", new_count) < 0) {
+            fclose(fp_orig);
+            fclose(fp_temp);
+            return FALSE;
+        }
+    }
+
+    if (is_binary) {
+        for (NTYPE i = 0; i < count; i++) {
+            Polygone p;
+            if (read_one_polygone(fp_orig, &p)) {
+                if (i != index) {
+                    if (!write_one_polygone(fp_temp, &p)) {
+                        free_polygone(&p);
+                        fclose(fp_orig);
+                        fclose(fp_temp);
+                        return FALSE;
+                    }
+                }
+                free_polygone(&p);
+            } else {
+                fclose(fp_orig);
+                fclose(fp_temp);
+                return FALSE;
+            }
+        }
+    } else {
+        for (NTYPE i = 0; i < count; i++) {
+            Polygone p;
+            if (read_one_polygone_from_text_file(fp_orig, &p)) {
+                if (i != index) {
+                    if (!write_one_polygone_to_text_file(fp_temp, &p)) {
+                        free_polygone(&p);
+                        fclose(fp_orig);
+                        fclose(fp_temp);
+                        return FALSE;
+                    }
+                }
+                free_polygone(&p);
+            } else {
+                fclose(fp_orig);
+                fclose(fp_temp);
+                return FALSE;
+            }
+        }
+    }
+
+    fclose(fp_orig);
+    fclose(fp_temp);
+    remove(filename);
+    rename(temp_filename, filename);
+    return TRUE;
+}
+
+// task е)
+int is_present_in_file(const char *filename, const Polygone *p)
+{
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        return FALSE;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+        return FALSE;
+    }
+
+    NTYPE count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+            fclose(fp);
+            return FALSE;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+            fclose(fp);
+            return FALSE;
+        }
+    }
+
+    int found = FALSE;
+    for (NTYPE i = 0; i < count; i++) {
+        Polygone temp;
+        if (is_binary ? read_one_polygone(fp, &temp) : read_one_polygone_from_text_file(fp, &temp)) {
+            if (isEqualPolygone(p, &temp)) {
+                found = TRUE;
+            }
+            free_polygone(&temp);
+            if (found) break;
+        } else {
+            free_polygone(&temp);
+            fclose(fp);
+            return FALSE;
+        }
+    }
+
+    fclose(fp);
+    return found;
+}
+
+// task є)
+int find_max_perimeter_polygone(const char *filename, Polygone *result)
+{
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        return FALSE;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+        return FALSE;
+    }
+
+    NTYPE count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1 || count == 0) {
+            fclose(fp);
+            return FALSE;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1 || count == 0) {
+            fclose(fp);
+            return FALSE;
+        }
+    }
+
+    if (!(is_binary ? read_one_polygone(fp, result) : read_one_polygone_from_text_file(fp, result))) {
+        fclose(fp);
+        return FALSE;
+    }
+    PTYPE max_perimeter = perimeter_polygone(result);
+
+    for (NTYPE i = 1; i < count; i++) {
+        Polygone temp;
+        if (is_binary ? read_one_polygone(fp, &temp) : read_one_polygone_from_text_file(fp, &temp)) {
+            PTYPE current_perimeter = perimeter_polygone(&temp);
+            if (current_perimeter > max_perimeter) {
+                max_perimeter = current_perimeter;
+                free_polygone(result);
+                *result = temp;
+            } else {
+                free_polygone(&temp);
+            }
+        } else {
+            free_polygone(&temp);
+            fclose(fp);
+            free_polygone(result);
+            return FALSE;
+        }
+    }
+
+    fclose(fp);
+    return TRUE;
+}
+
+// task ж)
+int find_min_area_polygone(const char *filename, Polygone *result)
+{
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        return FALSE;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+        return FALSE;
+    }
+
+    NTYPE count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1 || count == 0) {
+            fclose(fp);
+            return FALSE;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1 || count == 0) {
+            fclose(fp);
+            return FALSE;
+        }
+    }
+
+    if (!(is_binary ? read_one_polygone(fp, result) : read_one_polygone_from_text_file(fp, result))) {
+        fclose(fp);
+        return FALSE;
+    }
+    PTYPE min_area = area_polygone(result);
+
+    for (NTYPE i = 1; i < count; i++) {
+        Polygone temp;
+        if (is_binary ? read_one_polygone(fp, &temp) : read_one_polygone_from_text_file(fp, &temp)) {
+            PTYPE current_area = area_polygone(&temp);
+            if (current_area < min_area) {
+                min_area = current_area;
+                free_polygone(result);
+                *result = temp;
+            } else {
+                free_polygone(&temp);
+            }
+        } else {
+            free_polygone(&temp);
+            fclose(fp);
+            free_polygone(result);
+            return FALSE;
+        }
+    }
+
+    fclose(fp);
+    return TRUE;
+}
+
+// task з)
+NTYPE count_convex_polygons(const char *filename)
+{
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        return 0;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+        return 0;
+    }
+
+    NTYPE count, convex_count = 0;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+            fclose(fp);
+            return 0;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+            fclose(fp);
+            return 0;
+        }
+    }
+
+    for (NTYPE i = 0; i < count; i++) {
+        Polygone temp;
+        if (is_binary ? read_one_polygone(fp, &temp) : read_one_polygone_from_text_file(fp, &temp)) {
+            if (is_convex(&temp)) convex_count++;
+            free_polygone(&temp);
+        } else {
+            free_polygone(&temp);
+            fclose(fp);
+            return convex_count;
+        }
+    }
+
+    fclose(fp);
+    return convex_count;
+}
+
+// task і)
+NTYPE count_polygons_containing_point(const char *filename, TPoint p)
+{
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        return 0;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+        return 0;
+    }
+
+    NTYPE count, containing_count = 0;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+            fclose(fp);
+            return 0;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+            fclose(fp);
+            return 0;
+        }
+    }
+
+    for (NTYPE i = 0; i < count; i++) {
+        Polygone temp;
+        if (is_binary ? read_one_polygone(fp, &temp) : read_one_polygone_from_text_file(fp, &temp)) {
+            if (is_point_inside(&temp, p)) containing_count++;
+            free_polygone(&temp);
+        } else {
+            free_polygone(&temp);
+            fclose(fp);
+            return containing_count;
+        }
+    }
+
+    fclose(fp);
+    return containing_count;
+}
+
+// task й)
+void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(const Polygone *))
+{   
+    if(!is_valid(file_a)){
+        printf("%s is corrupted or contains invalid polygons.\n", file_a);
+        return;
+    }
+    const char *ext_a = strrchr(file_a, '.');
+    int a_is_binary = ext_a && strcmp(ext_a, ".bin") == 0;
+    int a_is_text = ext_a && strcmp(ext_a, ".txt") == 0;
+    if (!a_is_binary && !a_is_text) {
+        return;
+    }
+    const char *ext_b = strrchr(file_b, '.');
+    int b_is_binary = ext_b && strcmp(ext_b, ".bin") == 0;
+    int b_is_text = ext_b && strcmp(ext_b, ".txt") == 0;
+    if (!b_is_binary && !b_is_text) {
+        return;
+    }
+
+    FILE *fp_a = fopen(file_a, a_is_binary ? "rb" : "r");
+    FILE *fp_b = fopen(file_b, b_is_binary ? "wb" : "w");
+    if (!fp_a || !fp_b) {
+        if (fp_a) fclose(fp_a);
+        if (fp_b) fclose(fp_b);
+        return;
+    }
+
+    NTYPE count_a, count_b = 0;
+    if (a_is_binary) {
+        fread(&count_a, sizeof(NTYPE), 1, fp_a);
+    } else {
+        fscanf(fp_a, "%u", &count_a);
+    }
+    if (b_is_binary) {
+        fseek(fp_b, sizeof(NTYPE), SEEK_SET);
+    } else {
+        fprintf(fp_b, "%10u ", 0);
+    }
+
+    for (NTYPE i = 0; i < count_a; i++) {
+        Polygone p;
+        if (a_is_binary ? read_one_polygone(fp_a, &p) : read_one_polygone_from_text_file(fp_a, &p)) {
+            if (predicate(&p)) {
+                if (b_is_binary) {
+                    if (!write_one_polygone(fp_b, &p)) {
+                        free_polygone(&p);
+                        fclose(fp_a);
+                        fclose(fp_b);
+                        return;
+                    }
+                } else {
+                    if (!write_one_polygone_to_text_file(fp_b, &p)) {
+                        free_polygone(&p);
+                        fclose(fp_a);
+                        fclose(fp_b);
+                        return;
+                    }
+                }
+                count_b++;
+            }
+            free_polygone(&p);
+        }
+    }
+
+    if (b_is_binary) {
+        rewind(fp_b);
+        fwrite(&count_b, sizeof(NTYPE), 1, fp_b);
+    } else {
+        rewind(fp_b);
+        fprintf(fp_b, "%10u ", count_b);
+    }
+
+    fclose(fp_a);
+    fclose(fp_b);
+    printf("Filtered %u polygons into file %s\n", count_b, file_b);
+}
+
+// task к)
+PTYPE perimeter_polygone(const Polygone *p)
+{
+    PTYPE perimeter = 0.0;
+    for (NTYPE i = 0; i < p->n; i++)
+    {
+        TPoint p1 = p->vertice[i];
+        TPoint p2 = p->vertice[(i + 1) % p->n];
+        perimeter += sqrtf(powf(p2.x - p1.x, 2) + powf(p2.y - p1.y, 2));
+    }
+    return perimeter;
+}
+
+PTYPE area_polygone(const Polygone *p)
+{
+    if (p->n < 3)
+        return 0.0;
+    PTYPE area = 0.0f;
+    for (NTYPE i = 0; i < p->n; i++)
+    {
+        TPoint p1 = p->vertice[i];
+        TPoint p2 = p->vertice[(i + 1) % p->n];
+        area += (p1.x * p2.y - p2.x * p1.y);
+    }
+    return fabsf(area) / 2.0f;
+}
+
+int is_convex(const Polygone *p)
+{
+    if (p->n < 3)
+        return FALSE;
+
+    int sign = 0;
+    int nonzero_cross = 0;
+
+    for (NTYPE i = 0; i < p->n; i++)
+    {
+        TPoint p1 = p->vertice[i];
+        TPoint p2 = p->vertice[(i + 1) % p->n];
+        TPoint p3 = p->vertice[(i + 2) % p->n];
+
+        PTYPE cross_product =
+            (p2.x - p1.x) * (p3.y - p1.y) -
+            (p2.y - p1.y) * (p3.x - p1.x);
+
+        if (fabsf(cross_product) > EPSILON)
+        {
+            nonzero_cross++;
+            int current_sign = (cross_product > 0) ? 1 : -1;
+            if (sign == 0)
+                sign = current_sign;
+            else if (sign != current_sign)
+                return FALSE;
+        }
+    }
+
+    if (nonzero_cross == 0)
+        return FALSE;
+
+    return TRUE;
+}
+
+
+int is_point_inside(const Polygone *p, TPoint point)
+{
+    if (p->n < 3)
+        return FALSE;
+    PTYPE total_area = area_polygone(p);
+    PTYPE sum_tri_area = 0.0f;
+
+    for (NTYPE i = 0; i < p->n; i++)
+    {
+        sum_tri_area += area_from_points(point, p->vertice[i], p->vertice[(i + 1) % p->n]);
+    }
+
+    return fabsf(total_area - sum_tri_area) < EPSILON;
+}
+
+// task к)
+int isEqualPoint(TPoint a, TPoint b)
+{
+    return fabsf(a.x - b.x) < EPSILON && fabsf(a.y - b.y) < EPSILON;
+}
+
+int isEqualPolygone(const Polygone *p1, const Polygone *p2)
 {
     if (p1->n != p2->n)
-        return FALSE; // тоді у нас різна кількість вершин
-
-    int n = p1->n; // p1, not p
-    int start = -1;
-
-    for (int i = 0; i < n; i++)
-    {
-        if (isEqualPoint(p1->vertice[0], p2->vertice[i]))
-        {
-            start = i;
-            break;
-        }
-    }
-    if (start == -1)
         return FALSE;
-
-    int same_dir = TRUE;
-    int opposite_dir = TRUE;
-    for (int i = 0; i < n; i++)
+    NTYPE n = p1->n;
+    for (NTYPE start_node = 0; start_node < n; start_node++)
     {
-        int j = (start + i) % n;
-        int k = (start - i + n) % n;
-        if (!isEqualPoint(p1->vertice[i], p2->vertice[j]))
-            same_dir = FALSE;
-        if (!isEqualPoint(p1->vertice[i], p2->vertice[k]))
-            opposite_dir = FALSE;
-    }
-    return (same_dir || opposite_dir);
-}
-
-int isPresentPolygone(FILE *fp, const struct Polygone *p)
-{
-    assert(fp != NULL);
-    rewind(fp);
-
-    unsigned int M;
-    if (fread(&M, sizeof(unsigned int), 1, fp) != 1)
-        return FALSE;
-
-    for (unsigned int i = 0; i < M; i++)
-    {
-        struct Polygone temp;
-        if (fread(&temp.n, sizeof(unsigned int), 1, fp) != 1)
+        if (isEqualPoint(p1->vertice[0], p2->vertice[start_node]))
         {
-            return FALSE; // break -> FALSE
-        }
-
-        temp.vertice = (TPoint *)malloc(temp.n * sizeof(TPoint));
-        if (temp.vertice == NULL)
-            return FALSE;
-
-        for (unsigned int j = 0; j < temp.n; j++)
-        {
-            // add validation
-            if (fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
-                fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp) != 1)
+            int same_dir = TRUE;
+            for (NTYPE i = 1; i < n; i++)
             {
-                free(temp.vertice);
-                return FALSE;
+                if (!isEqualPoint(p1->vertice[i], p2->vertice[(start_node + i) % n]))
+                {
+                    same_dir = FALSE;
+                    break;
+                }
             }
+            if (same_dir)
+                return TRUE;
+
+            int opposite_dir = TRUE;
+            for (NTYPE i = 1; i < n; i++)
+            {
+                if (!isEqualPoint(p1->vertice[i], p2->vertice[(start_node - i + n) % n]))
+                {
+                    opposite_dir = FALSE;
+                    break;
+                }
+            }
+            if (opposite_dir)
+                return TRUE;
         }
-
-        int equal = isEqualPolygone(p, &temp);
-        free(temp.vertice);
-
-        if (equal)
-            return TRUE;
     }
-
-    return FALSE; // to func
-}
-*/
-
-PTYPE perimeter_polygon(Polygone p) {
-    if (p.n < 2) return 0;  
-    PTYPE perim = 0;
-    for (int i = 0; i < p.n - 1; i++) {
-        TVECT v = setVector(p.vertice[i], p.vertice[i + 1]);
-        perim += lengthVector(v);
-    }
-    TVECT v_last = setVector(p.vertice[p.n - 1], p.vertice[0]);
-    perim += lengthVector(v_last);
-    return perim;
-}
-
-int maxPerimeterPolygone(FILE* fp, Polygone* p) {
-    assert(fp != NULL);
-    assert(p != NULL);
-    p->vertice = NULL;
-    p->n = 0;
-    Polygone temp;
-    PTYPE max_perim = 0;
-    int found = FALSE;
-    unsigned int M;
-    if (fread(&M, sizeof(unsigned int), 1, fp) != 1) {
-        return FALSE;
-    }
-    for (int i = 0; i < M; i++) {
-        if (fread(&temp.n, sizeof(unsigned int), 1, fp) != 1) {
-            if (p->vertice) free(p->vertice);
-            return FALSE;
-        }
-        temp.vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
-        if (temp.vertice == NULL) {
-            if (p->vertice) free(p->vertice);
-            return FALSE;
-        }
-        int read_error = FALSE;
-        for (int j = 0; j < temp.n; j++) {
-            if (fread(&temp.vertice[j].x, sizeof(PTYPE), 1, fp) != 1 ||
-                fread(&temp.vertice[j].y, sizeof(PTYPE), 1, fp) != 1) {
-                read_error = TRUE;
-                break;
-            }
-        }
-        if (read_error) {
-            free(temp.vertice);
-            if (p->vertice) free(p->vertice);
-            return FALSE;
-        }
-        PTYPE perim = perimeter_polygon(temp);
-        if (!found || perim > max_perim) {
-            max_perim = perim;
-            found = TRUE;
-            if (p->vertice) {
-                free(p->vertice);
-            }
-            p->n = temp.n;
-            p->vertice = (TPoint*)malloc(temp.n * sizeof(TPoint));
-            if (p->vertice == NULL) {
-                free(temp.vertice);
-                return FALSE;
-            }
-            for (int j = 0; j < temp.n; j++) {
-                p->vertice[j].x = temp.vertice[j].x;
-                p->vertice[j].y = temp.vertice[j].y;
-            }
-        }
-        free(temp.vertice);
-    }
-    return found;
+    return FALSE;
 }

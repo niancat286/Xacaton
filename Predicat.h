@@ -8,4 +8,3 @@ typedef int (*predicatInt)(int);
 typedef int (*predicatDouble)(double);
 
 typedef int (*predicatPolygone)(const Polygone* p);
-
