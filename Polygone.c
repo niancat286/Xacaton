@@ -787,35 +787,75 @@ NTYPE count_polygons_containing_point(const char *filename, TPoint p)
 // task й)
 void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(const Polygone *))
 {
-    FILE *fp_a = fopen(file_a, "rb"), *fp_b = fopen(file_b, "wb");
-    if (!fp_a || !fp_b)
-    {
-        printf("Error opening files for filtering.\n");
-        if (fp_a)
-            fclose(fp_a);
-        if (fp_b)
-            fclose(fp_b);
+    const char *ext_a = strrchr(file_a, '.');
+    int a_is_binary = ext_a && strcmp(ext_a, ".bin") == 0;
+    int a_is_text = ext_a && strcmp(ext_a, ".txt") == 0;
+    if (!a_is_binary && !a_is_text) {
+//printf("Error: Input file %s must have .bin or .txt extension.\n", file_a);
+        return;
+    }
+    const char *ext_b = strrchr(file_b, '.');
+    int b_is_binary = ext_b && strcmp(ext_b, ".bin") == 0;
+    int b_is_text = ext_b && strcmp(ext_b, ".txt") == 0;
+    if (!b_is_binary && !b_is_text) {
+//printf("Error: Output file %s must have .bin or .txt extension.\n", file_b);
+        return;
+    }
+
+    FILE *fp_a = fopen(file_a, a_is_binary ? "rb" : "r");
+    FILE *fp_b = fopen(file_b, b_is_binary ? "wb" : "w");
+    if (!fp_a || !fp_b) {
+//printf("Error opening files for filtering.\n");
+        if (fp_a) fclose(fp_a);
+        if (fp_b) fclose(fp_b);
         return;
     }
 
     NTYPE count_a, count_b = 0;
-    fread(&count_a, sizeof(NTYPE), 1, fp_a);
-    fseek(fp_b, sizeof(NTYPE), SEEK_SET);
-    for (NTYPE i = 0; i < count_a; i++)
-    {
+    if (a_is_binary) {
+        fread(&count_a, sizeof(NTYPE), 1, fp_a);
+    } else {
+        fscanf(fp_a, "%u", &count_a);
+    }
+    if (b_is_binary) {
+        fseek(fp_b, sizeof(NTYPE), SEEK_SET);
+    } else {
+        fprintf(fp_b, "%10u ", 0);
+    }
+
+    for (NTYPE i = 0; i < count_a; i++) {
         Polygone p;
-        if (read_one_polygone(fp_a, &p))
-        {
-            if (predicate(&p))
-            {
-                write_one_polygone(fp_b, &p);
+        if (a_is_binary ? read_one_polygone(fp_a, &p) : read_one_polygone_from_text_file(fp_a, &p)) {
+            if (predicate(&p)) {
+                if (b_is_binary) {
+                    if (!write_one_polygone(fp_b, &p)) {
+                        free_polygone(&p);
+                        fclose(fp_a);
+                        fclose(fp_b);
+                        return;
+                    }
+                } else {
+                    if (!write_one_polygone_to_text_file(fp_b, &p)) {
+                        free_polygone(&p);
+                        fclose(fp_a);
+                        fclose(fp_b);
+                        return;
+                    }
+                }
                 count_b++;
             }
             free_polygone(&p);
         }
     }
-    rewind(fp_b);
-    fwrite(&count_b, sizeof(NTYPE), 1, fp_b);
+
+    if (b_is_binary) {
+        rewind(fp_b);
+        fwrite(&count_b, sizeof(NTYPE), 1, fp_b);
+    } else {
+        rewind(fp_b);
+        fprintf(fp_b, "%10u ", count_b);
+    }
+
     fclose(fp_a);
     fclose(fp_b);
     printf("Filtered %u polygons into file %s\n", count_b, file_b);
