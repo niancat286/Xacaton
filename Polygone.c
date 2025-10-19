@@ -572,40 +572,59 @@ int is_present_in_file(const char *filename, const Polygone *p)
 // task є)
 int find_max_perimeter_polygone(const char *filename, Polygone *result)
 {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp)
-        return FALSE;
-    NTYPE count;
-    if (fread(&count, sizeof(NTYPE), 1, fp) != 1 || count == 0)
-    {
-        fclose(fp);
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+//printf("Error: File %s must have .bin or .txt extension.\n", filename);
         return FALSE;
     }
 
-    if (!read_one_polygone(fp, result))
-    {
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+//printf("Error: Cannot open file %s\n", filename);
+        return FALSE;
+    }
+
+    NTYPE count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1 || count == 0) {
+            fclose(fp);
+            return FALSE;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1 || count == 0) {
+            fclose(fp);
+            return FALSE;
+        }
+    }
+
+    if (!(is_binary ? read_one_polygone(fp, result) : read_one_polygone_from_text_file(fp, result))) {
         fclose(fp);
         return FALSE;
     }
     PTYPE max_perimeter = perimeter_polygone(result);
 
-    for (NTYPE i = 1; i < count; i++)
-    {
+    // Compare remaining polygons
+    for (NTYPE i = 1; i < count; i++) {
         Polygone temp;
-        if (!read_one_polygone(fp, &temp))
-            break;
-        PTYPE current_perimeter = perimeter_polygone(&temp);
-        if (current_perimeter > max_perimeter)
-        {
-            max_perimeter = current_perimeter;
-            free_polygone(result);
-            *result = temp;
-        }
-        else
-        {
+        if (is_binary ? read_one_polygone(fp, &temp) : read_one_polygone_from_text_file(fp, &temp)) {
+            PTYPE current_perimeter = perimeter_polygone(&temp);
+            if (current_perimeter > max_perimeter) {
+                max_perimeter = current_perimeter;
+                free_polygone(result);
+                *result = temp;
+            } else {
+                free_polygone(&temp);
+            }
+        } else {
             free_polygone(&temp);
+            fclose(fp);
+            free_polygone(result);
+            return FALSE;
         }
     }
+
     fclose(fp);
     return TRUE;
 }
