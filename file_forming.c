@@ -5,7 +5,7 @@
 #include <assert.h>
 
 #include "Types.h"
-
+#include "Polygone.h"
 #define LEN 30
 #define POLYGONES 100000
 
@@ -174,9 +174,9 @@ void output() {
 
     unsigned int count = 0;
     if (is_binary) {
-        fread(&count, sizeof(NTYPE), 1, fp_a);
+        fread(&count, sizeof(NTYPE), 1, fp);
     } else {
-        fscanf(fp_a, "%u", &count);
+        fscanf(fp, "%u", &count);
     }
 
     Polygone *polygones = (is_binary ? readPolygones(fp) : readPolygones_from_text(fp));

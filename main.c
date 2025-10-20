@@ -28,7 +28,7 @@ void print_menu() {
 }
 
 int main() {
-    const char* main_db = "polygons.txt";
+    const char* main_db = "output.txt";
     int choice;
 
     do {

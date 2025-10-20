@@ -9,16 +9,18 @@
 
 static int read_one_polygone(FILE *fp, Polygone *p)
 {
-    if (fread(&p->n, sizeof(NTYPE), 1, fp) != 1)
+    if (fread(&p->n, sizeof(NTYPE), 1, fp) != 1 || p->n < 3)
         return FALSE;
     p->vertice = (TPoint *)malloc(p->n * sizeof(TPoint));
     if (!p->vertice)
         return FALSE;
     if (fread(p->vertice, sizeof(TPoint), p->n, fp) != p->n)
     {
+       printf("readone+"); 
         free(p->vertice);
         p->vertice = NULL;
         return FALSE;
+        printf("-\n");
     }
     return TRUE;
 }
@@ -37,6 +39,8 @@ static int read_one_polygone_from_text_file(FILE *fp, Polygone *p)
     if (fscanf(fp, "%u", &p->n) != 1) {
         return FALSE;
     }
+
+    if (p->n < 3) return FALSE;
     
     p->vertice = (TPoint *)malloc(p->n * sizeof(TPoint));
     if (!p->vertice) {
@@ -57,6 +61,7 @@ static int read_one_polygone_from_text_file(FILE *fp, Polygone *p)
 
 static int write_one_polygone_to_text_file(FILE *fp, const Polygone *p)
 {
+    
     if (fprintf(fp, "%u ", p->n) < 0) {
         return FALSE;
     }
@@ -89,6 +94,7 @@ void free_polygone(Polygone *p)
 // task а)
 void add_polygone_from_console(const char *filename)
 {
+
     Polygone p = {0, NULL};
     printf("Enter number of vertices N (>=3): ");
     if (scanf("%u", &p.n) != 1 || p.n < 3)
@@ -126,6 +132,11 @@ void add_polygone_from_console(const char *filename)
         free_polygone(&p);
         return;
     }
+    if(is_present_in_file(filename, &p)){
+        free_polygone(&p);
+        printf("Polygon is already in the file.\n"); 
+        return;
+    }
 
     FILE *fp = fopen(filename, is_binary ? "r+b" : "r+");
     if (!fp) {
@@ -151,6 +162,7 @@ void add_polygone_from_console(const char *filename)
         fscanf(fp, "%u", &count);
     }
 
+    
     fseek(fp, 0, SEEK_END);
     if (is_binary) {
         write_one_polygone(fp, &p);
@@ -171,10 +183,87 @@ void add_polygone_from_console(const char *filename)
     printf("Polygon added successfully.\n");
 }
 
+int is_valid(const char *filename){
+    const char *ext = strrchr(filename, '.');
+    int is_binary = ext && strcmp(ext, ".bin") == 0;
+    int is_text = ext && strcmp(ext, ".txt") == 0;
+    if (!is_binary && !is_text) {
+        printf("Error: Source file %s must have .bin or .txt extension.\n", filename);
+        return FALSE;
+    }
+
+    FILE *fp = fopen(filename, is_binary ? "rb" : "r");
+    if (!fp) {
+// printf("Error: Cannot open file %s\n", filename);
+        return FALSE;
+    }
+
+    int count;
+    if (is_binary) {
+        if (fread(&count, sizeof(NTYPE), 1, fp) != 1) {
+// printf("Error: Failed to read polygon count from %s\n", filename);
+            fclose(fp);
+            return FALSE;
+        }
+    } else {
+        if (fscanf(fp, "%u", &count) != 1) {
+// printf("Error: Failed to read polygon count from %s\n", filename);
+            fclose(fp);
+            return FALSE;
+        }
+    }
+
+    if (count < 1) {
+// printf("Error: Invalid polygon count in %s\n", filename);
+        fclose(fp);
+        return FALSE;
+    }
+
+    for (NTYPE i = 0; i < count; i++) {
+        int n;
+        if (is_binary) {
+            if (fread(&n, sizeof(NTYPE), 1, fp) != 1 || n < 3) {
+                // printf("Error: Failed to read vertex count for polygon %u in %s\n", i, filename);
+                fclose(fp);
+                return FALSE;
+            }
+            // Skip vertices
+            if (fseek(fp, n * sizeof(TPoint), SEEK_CUR) != 0) {
+                // printf("Error: Failed to skip vertices for polygon %u in %s\n", i, filename);
+                fclose(fp);
+                return FALSE;
+            }
+        } else {
+            if (fscanf(fp, "%u", &n) != 1 || n < 3) {
+                printf("%d\n", n);
+                // printf("Error: Failed to read vertex count for polygon %u in %s\n", i, filename);
+                fclose(fp);
+                return FALSE;
+            }
+            // Skip vertices
+            float x, y;
+            for (NTYPE j = 0; j < n; j++) {
+                if (fscanf(fp, "%f %f", &x, &y) != 2) {
+                    // printf("Error: Failed to read vertex %u for polygon %u in %s\n", j, i, filename);
+                    fclose(fp);
+                    return FALSE;
+                }
+            }
+        }
+    }
+    fclose(fp);
+    return TRUE;
+
+}
+
 // task б)
 void append_polygons_from_file(const char *dest_filename, const char *src_filename)
 {
     
+    if(!is_valid(src_filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", src_filename);
+        return;
+    }
     const char *src_ext = strrchr(src_filename, '.');
     int src_is_binary = src_ext && strcmp(src_ext, ".bin") == 0;
     int src_is_text = src_ext && strcmp(src_ext, ".txt") == 0;
@@ -182,6 +271,7 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
         printf("Error: Source file %s must have .bin or .txt extension.\n", src_filename);
         return;
     }
+
 
     const char *dest_ext = strrchr(dest_filename, '.');
     int dest_is_binary = dest_ext && strcmp(dest_ext, ".bin") == 0;
@@ -197,15 +287,15 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
         return;
     }
 
-    NTYPE src_count;
+    int src_count;
     if (src_is_binary) {
-        if (fread(&src_count, sizeof(NTYPE), 1, fp_src) != 1 || src_count == 0) {
+        if (fread(&src_count, sizeof(NTYPE), 1, fp_src) != 1 || src_count <= 0) {
             printf("Source file %s is empty or corrupted.\n", src_filename);
             fclose(fp_src);
             return;
         }
     } else {
-        if (fscanf(fp_src, "%u", &src_count) != 1 || src_count == 0) {
+        if (fscanf(fp_src, "%u", &src_count) != 1 || src_count <= 0) {
             printf("Source file %s is empty or corrupted.\n", src_filename);
             fclose(fp_src);
             return;
@@ -227,8 +317,8 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
             fprintf(fp_dest, "%10u ", zero);
         }
     }
-
-    NTYPE dest_count;
+    
+    int dest_count;
     rewind(fp_dest);
     if (dest_is_binary) {
         fread(&dest_count, sizeof(NTYPE), 1, fp_dest) != 1;
@@ -238,10 +328,16 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
 
     // Move to end of destination file
     fseek(fp_dest, 0, SEEK_END);
-
+    int present = 0;
     for (NTYPE i = 0; i < src_count; i++) {
         Polygone p;
+        p.vertice = NULL;
         if (src_is_binary ? read_one_polygone(fp_src, &p) : read_one_polygone_from_text_file(fp_src, &p)) {
+            if(is_present_in_file(dest_filename, &p)){
+                present++;
+                free_polygone(&p);
+                continue;
+            }
             if (dest_is_binary) {
                 if (!write_one_polygone(fp_dest, &p)) {
                     printf("Error writing polygon to %s.\n", dest_filename);
@@ -262,7 +358,7 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
             free_polygone(&p);
         } else {
             printf("Error reading polygon from %s.\n", src_filename);
-            free_polygone(&p);
+free_polygone(&p);
             fclose(fp_src);
             fclose(fp_dest);
             return;
@@ -270,7 +366,7 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
     }
     fclose(fp_src);
 
-    NTYPE total_count = dest_count + src_count;
+    NTYPE total_count = dest_count + src_count - present;
     rewind(fp_dest);
     if (dest_is_binary) {
         fwrite(&total_count, sizeof(NTYPE), 1, fp_dest);
@@ -278,12 +374,16 @@ void append_polygons_from_file(const char *dest_filename, const char *src_filena
         fprintf(fp_dest, "%10u ", total_count);
     }
     fclose(fp_dest);
-    printf("Appended %u polygons from %s to %s.\n", src_count, src_filename, dest_filename);
+    printf("Appended %u polygons from %s to %s.\n", src_count-present, src_filename, dest_filename);
 }
 
 // task в)
 void display_all_polygons(const char *filename)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -335,6 +435,10 @@ void display_all_polygons(const char *filename)
 // task г)
 void display_polygone_by_index(const char *filename, NTYPE index)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -416,6 +520,10 @@ void display_polygone_by_index(const char *filename, NTYPE index)
 // task д)
 int delete_polygone_by_index(const char *filename, NTYPE index)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return FALSE;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -572,6 +680,10 @@ int is_present_in_file(const char *filename, const Polygone *p)
 // task є)
 int find_max_perimeter_polygone(const char *filename, Polygone *result)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return FALSE;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -632,6 +744,10 @@ int find_max_perimeter_polygone(const char *filename, Polygone *result)
 // task ж)
 int find_min_area_polygone(const char *filename, Polygone *result)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return FALSE;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -695,6 +811,10 @@ int find_min_area_polygone(const char *filename, Polygone *result)
 // task з)
 NTYPE count_convex_polygons(const char *filename)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return 0;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -741,6 +861,10 @@ NTYPE count_convex_polygons(const char *filename)
 // task і)
 NTYPE count_polygons_containing_point(const char *filename, TPoint p)
 {
+    if(!is_valid(filename)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", filename);
+        return 0;
+    }
     const char *ext = strrchr(filename, '.');
     int is_binary = ext && strcmp(ext, ".bin") == 0;
     int is_text = ext && strcmp(ext, ".txt") == 0;
@@ -787,6 +911,11 @@ NTYPE count_polygons_containing_point(const char *filename, TPoint p)
 // task й)
 void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(const Polygone *))
 {
+    if(!is_valid(file_a)){
+        printf("%s is empty, corrupted or contains invalid polygons.\n", file_a);
+        return;
+    }
+    
     const char *ext_a = strrchr(file_a, '.');
     int a_is_binary = ext_a && strcmp(ext_a, ".bin") == 0;
     int a_is_text = ext_a && strcmp(ext_a, ".txt") == 0;
@@ -822,10 +951,15 @@ void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(co
     } else {
         fprintf(fp_b, "%10u ", 0);
     }
-
+    int present = 0;
     for (NTYPE i = 0; i < count_a; i++) {
         Polygone p;
         if (a_is_binary ? read_one_polygone(fp_a, &p) : read_one_polygone_from_text_file(fp_a, &p)) {
+            if(is_present_in_file(file_b, &p)){
+                present++;
+                free_polygone(&p);
+                continue;
+            }    
             if (predicate(&p)) {
                 if (b_is_binary) {
                     if (!write_one_polygone(fp_b, &p)) {
@@ -847,7 +981,7 @@ void filter_polygons(const char *file_a, const char *file_b, int (*predicate)(co
             free_polygone(&p);
         }
     }
-
+    count_b -= present;
     if (b_is_binary) {
         rewind(fp_b);
         fwrite(&count_b, sizeof(NTYPE), 1, fp_b);
