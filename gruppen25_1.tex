@@ -1,0 +1,159 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+
+
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian,ukrainian]{babel}
+
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[unicode=true]{hyperref}
+\hypersetup{
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+\date{}
+
+\usepackage{multicol}
+
+\usepackage{enumitem}
+\makeatletter
+\newcommand{\xslalph}[1]{\expandafter\@xslalph\csname c@#1\endcsname}
+\newcommand{\@xslalph}[1]{%
+    \ifcase#1\or а\or б\or в\or г\or д\or e\or є\or ж\or з\or i%
+    \or й\or к\or л\or м\or н\or о\or п\or р\or с\or т%
+    \or у\or ф\or х\or ц\or ч\or ш\or ю\or я\or аа\or бб\or вв %
+    \else\@ctrerr\fi%
+}
+\AddEnumerateCounter{\xslalph}{\@xslalph}{m}
+\makeatother
+
+
+\begin{document}
+
+Василь Пупкін проходить тестове завдання при прийомі на роботу в IT-компанію. 
+Йому необхідно реалізувати систему роботи з багатокутниками, яка відповідає наступним вимогам.
+Але нажаль, Василь невміє користуватися Гітхабом, тому частина коду пропала, йому терміново (до 14-00)
+потрібно все відновити.
+При цьому існуючий код точно правильний, його міняти неможна, але файли майже всі трохи недописані до кінця...
+
+Відомо, що тести та код були вже написані. Потрібно написати та протестувати всі пункти даних задач. 
+Тобто, команда пише розв'язки та - відповідні тести.
+На кожний пункт повинно буте >= 3 різних юніт тестів.   
+
+Результат розв'язків даних задач повинен міститись в даній папці за назвою "Hakaton25_(номер команди)"
+та запускатись даним мейкфайлом.
+В заголовні файли можна додавати щось, але не можна видаляти чи змінювати їх.
+
+Увага! Користуватись колекціями С++ не можна - задачі на "чистому" С!
+
+В наступних задачах умови $Q(x)$ задаються предікатом, або 
+булевою функцією, що передається через вказівник як аргумент.
+\begin{enumerate}
+\item 
+
+Всі дані повинні разом вводяться у файл з клавіатури або з файлу input.dat, 
+виводяться на екран та у файл output.txt.
+
+Задача - реалізувати структуру даних для зберігання багатокутників, що зберігаются у файлі. 
+Файл з багатокутником зберігається в текстовому файлі.
+
+Формат файлу для множини багатокутників:
+На початку - unsigned число $M$ - кількість багатокутників ($1 \le N \le 100000$). Далі
+записано $M$ структур, які складаються з кількості вершин багатокутника та $N$ пар float чисел 
+що є координатами вершин $(x,y)$.
+
+Сформуйте файл багатокутників, в якому жоден елемент не повторюється.
+Інтерфейс:
+
+Визначити:
+\begin{enumerate}[label=\xslalph*)]
+\item процедуру введення та додавання багатокутника з консолі у файл (з перевіркою коректності даних);
+\item процедуру введення та додавання всіх багатокутників з іншого файлу у вихідний файл;
+\item процедуру виведення всіх багатокутників;
+\item процедуру виведення багатокутника за даним індексом на консоль;
+\item процедуру видалення багатокутника по індексу з файлу;
+\item функцію, що дає відповідь, чи є даний багатокутник у нашому файлі (багатокутникі однакові, якщо всі їх відповідні сторони та кути - рівні);
+\item функцію, що знаходить максимальний багатокутник за периметром;
+\item функцію, що знаходить мінімальний за площею;
+\item функцію, що знаходить кількість опуклих багатокутників у файлі;
+\item функцію, що знаходить кількість багатокутників у файлі в середині яких є дана точка Р;
+\item функцію, що за файлу A знаходить підмножину всіх таких її
+багатокутників, для яких справедлива умова $Q(х)$, $x\in A$ та записує у файл В;
+
+\end{enumerate}
+
+
+Додаткова інформація в заголовних та кодових файлах.
+
+\subsection*{Технічні вимоги}
+
+\begin{itemize}
+\item Мова програмування: C (заборонено використання колекцій C++)
+\item Всі дані повинні вводитися з консолі або з файлу \texttt{input.dat}
+\item Результати роботи програми повинні виводитися на екран та у файл \texttt{output.txt}
+\item Кожна функція повинна мати щонайменше 3 юніт-тести
+\item Код повинен компілюватися з наданим Makefile
+\item Розв'язок розмістити в папці \texttt{Hakaton25\_<номер команди>}
+\end{itemize}
+
+\subsection*{Критерії оцінювання}
+
+\begin{itemize}
+\item Коректність реалізації всіх функцій 
+\item Якість та покриття тестами 
+\item Оптимізація роботи з пам'яттю 
+\item Читабельність та структурування коду
+\end{itemize}
+
+\end{enumerate}
+
+\end{document}

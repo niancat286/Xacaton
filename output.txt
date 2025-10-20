@@ -1,0 +1,78 @@
+========================================
+       POLYGON TESTS       
+========================================
+
+--- Testing perimeter_polygone ---
+[ OK ] Perimeter of 5x5 square should be 20
+[ OK ] Perimeter of 3-4-5 triangle should be 12
+[ OK ] Perimeter of unit square should be 4
+
+--- Testing area_polygone ---
+[ OK ] Area of 5x5 square should be 25
+[ OK ] Area of triangle should be 6
+[ OK ] Area of unit square should be 1
+
+--- Testing is_convex ---
+[ OK ] Square should be convex
+[ OK ] Arrow shape should not be convex
+[ OK ] Triangle should be convex
+
+--- Testing is_point_inside ---
+[ OK ] Point (2.5,2.5) should be inside square
+[ OK ] Point (6,6) should be outside square
+[ OK ] Point on border handled correctly
+
+--- Testing isEqualPoint ---
+[ OK ] Equal points should be equal
+[ OK ] Different points should not be equal
+[ OK ] Zero points should be equal
+
+--- Testing isEqualPolygone ---
+[ OK ] Identical polygons should be equal
+[ OK ] Shifted vertices should be equal
+[ OK ] Different polygons should not be equal
+
+--- Testing append_polygons_from_file ---
+[ OK ] Append to empty file
+[ OK ] Append to existing file
+[ OK ] Append multiple polygons
+
+--- Testing delete_polygone_by_index ---
+[ OK ] Delete first polygon
+[ OK ] Delete last polygon
+[ OK ] Delete non-existing index should fail
+
+--- Testing is_present_in_file ---
+[ OK ] Find existing polygon (first)
+[ OK ] Find existing polygon (second)
+[ OK ] Non-existing polygon should not be found
+
+--- Testing find_max_perimeter_polygone ---
+[ OK ] Find max perimeter polygon
+[ OK ] Max perimeter in empty file should fail
+[ OK ] Max perimeter with single polygon
+
+--- Testing find_min_area_polygone ---
+[ OK ] Find min area polygon
+[ OK ] Min area in empty file should fail
+[ OK ] Min area with single polygon
+
+--- Testing count_convex_polygons ---
+[ OK ] Count convex polygons
+[ OK ] All polygons are convex
+[ OK ] No polygons in file
+
+--- Testing count_polygons_containing_point ---
+[ OK ] Point inside multiple polygons
+[ OK ] Point outside all polygons
+[ OK ] Point inside single polygon
+
+--- Testing filter_polygons ---
+[ OK ] Filter polygons with area > 10
+[ OK ] Filter with no matching polygons
+[ OK ] Filter with all matching polygons
+
+========================================
+SUMMARY: 42 out of 42 tests passed.
+ALL TESTS PASSED!
+========================================
